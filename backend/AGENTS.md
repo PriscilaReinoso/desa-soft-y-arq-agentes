@@ -101,6 +101,22 @@ Repositories únicamente realizan operaciones CRUD y consultas.
 - Skills en `.opencode/skill/`: blueprints para migraciones
   Alembic y tests pytest.
 - Comandos personalizados en `.opencode/command/`.
+- Skill `jira-create` y comando `/jira-create`: crear issues de Jira en el
+  proyecto Inventario Ferreteria.
+
+## Integración con Jira
+
+El proyecto Jira **Inventario Ferreteria** tiene el key `IF`. Para operar
+contra la API REST de Jira se usan variables de entorno de usuario:
+
+- `JIRA_API_TOKEN` — token de API de Jira.
+- `JIRA_SITE_URL` — URL del sitio.
+- `JIRA_EMAIL` — email de la cuenta de Jira.
+
+La autenticación es HTTP Basic con `email:token` contra
+`https://<JIRA_SITE_URL>/rest/api/3`. Para crear issues usar la skill
+`jira-create` (o el comando `/jira-create`). No exponer estas variables en
+logs ni en archivos versionados.
 
 ## Seguridad
 
