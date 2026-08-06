@@ -50,8 +50,9 @@ README.md              # Documentación del proyecto e instrucciones de instalac
 
 ## Convenciones
 
-- Nombres descriptivos en inglés; entidades de dominio en inglés:
-- Modelos en singular (`class Article`), tablas en plural (`articles`).
+- Nombres descriptivos en español; entidades de dominio en español:
+- Modelos en singular (`class Articulo`), tablas en singular (`articulo`).
+- Esquema de bases de datos dentro de docs/db_schemma.md
 - Comentarios solo cuando aportan valor; no repetir el código.
 - Mantener cada archivo con una única responsabilidad.
 - No escribir secretos en código ni en archivos versionados; usar variables
@@ -101,8 +102,8 @@ Repositories únicamente realizan operaciones CRUD y consultas.
 - Skills en `.opencode/skill/`: blueprints para migraciones
   Alembic y tests pytest.
 - Comandos personalizados en `.opencode/command/`.
-- Skill `jira-create` y comando `/jira-create`: crear issues de Jira en el
-  proyecto Inventario Ferreteria.
+- Skill `jira-create` y comando `/jira-create`: crear, vincular y transicionar
+  issues de Jira en el proyecto Inventario Ferreteria.
 
 ## Integración con Jira
 
@@ -114,9 +115,44 @@ contra la API REST de Jira se usan variables de entorno de usuario:
 - `JIRA_EMAIL` — email de la cuenta de Jira.
 
 La autenticación es HTTP Basic con `email:token` contra
-`https://<JIRA_SITE_URL>/rest/api/3`. Para crear issues usar la skill
-`jira-create` (o el comando `/jira-create`). No exponer estas variables en
-logs ni en archivos versionados.
+`https://<JIRA_SITE_URL>/rest/api/3`. `JIRA_SITE_URL` puede incluir o no el
+esquema `https://`; normalizarlo (quitar `https?://`) antes de construir URLs
+para evitar dobles esquemas. Para crear issues usar la skill `jira-create` (o
+el comando `/jira-create`). No exponer estas variables en logs ni en archivos
+versionados.
+
+### Ciclo de vida spec ↔ Jira
+
+Cada change de OpenSpec se asocia a un issue de Jira (Historia). El vínculo se
+guarda en `openspec/changes/<change>/jira.yaml`:
+
+```yaml
+key: IF-<X>
+state: created   # created | in_progress | done
+```
+
+No guardar la URL en `jira.yaml`; derivarla de `JIRA_SITE_URL` normalizado
+(`https://<site-normalizado>/browse/IF-<X>`) cuando se necesite mostrar.
+
+Flujo:
+
+1. `/opsx-propose <change>` — crea la spec (no toca Jira).
+2. `/jira-create <change>` — crea la **Historia** (padre = Epic consultado si
+   no se especifica), estado inicial "Por hacer" y escribe `jira.yaml`.
+3. `/opsx-apply-jira <change>` — transiciona el issue a **"En curso"** y luego
+   ejecuta el flujo `apply` de OpenSpec.
+4. `/opsx-archive-jira <change>` — transiciona el issue a **"Finalizado"** y
+   luego ejecuta el flujo `archive` de OpenSpec. `jira.yaml` se archiva junto
+   con la carpeta del change.
+
+Reglas:
+
+- Los comandos `/opsx-apply` y `/opsx-archive` (sin Jira) siguen existiendo
+  para cambios sin issue asociado.
+- Si no hay `jira.yaml`, apply/archive avisan y continúan (soft-fail).
+- Idempotencia: si el issue ya está en el estado objetivo, no se transiciona.
+- Transiciones por `statusCategory.key` (`indeterminate` → "En curso",
+  `done` → "Finalizado"), robusto a idiomas.
 
 ## Seguridad
 
