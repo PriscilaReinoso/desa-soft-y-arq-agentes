@@ -41,16 +41,19 @@ Campos:
 - id UUID PK
 - nombre VARCHAR(100) NOT NULL
 - apellido VARCHAR(100) NOT NULL
+- username VARCHAR(50) UNIQUE NOT NULL
 - email VARCHAR(255) UNIQUE NOT NULL
 - password_hash TEXT NOT NULL
 - role_id UUID FK -> role.id
 - activo BOOLEAN DEFAULT TRUE
 
 Índices:
+- INDEX(username)
 - INDEX(email)
 - INDEX(apellido)
 
 Restricciones:
+- UNIQUE(username)
 - UNIQUE(email)
 
 Relaciones:
@@ -207,21 +210,6 @@ Restricciones:
 Relaciones:
 - N:1 articulo
 - N:1 proveedor
-
----
-
-# Enumeraciones
-
-## tipo_espacio
-
-- ESTANTERIA
-- MUESTRARIO
-
-## TipoCategoria
-
-- HERRAMIENTA 
-- ELECTRICIDAD 
-- GAS 
 
 ---
 

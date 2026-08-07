@@ -23,6 +23,10 @@ class Settings(BaseSettings):
 
     TEST_DATABASE_URL: str = "sqlite+pysqlite:///:memory:"
 
+    JWT_SECRET: str = "dev-secret-change-me"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRES_MINUTES: int = 30
+
     @property
     def DATABASE_URL(self) -> str:
         return URL.create(

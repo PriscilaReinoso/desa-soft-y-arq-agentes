@@ -33,12 +33,16 @@ class UsuarioService:
 
     def create(self, data: UsuarioCreate) -> Usuario:
         self._validar_rol(data.role_id)
+        normalized_username = data.username.lower()
         normalized_email = data.email.lower()
+        if self.repository.get_by_username(normalized_username) is not None:
+            raise ConflictError(detail="Ya existe un usuario con ese username")
         if self.repository.get_by_email(normalized_email) is not None:
             raise ConflictError(detail="Ya existe un usuario con ese email")
         usuario = Usuario(
             nombre=data.nombre,
             apellido=data.apellido,
+            username=normalized_username,
             email=normalized_email,
             password_hash=hash_password(data.password),
             role_id=data.role_id,
@@ -50,6 +54,12 @@ class UsuarioService:
         if data.role_id is not None:
             self._validar_rol(data.role_id)
             usuario.role_id = data.role_id
+        if data.username is not None:
+            normalized_username = data.username.lower()
+            existing = self.repository.get_by_username(normalized_username)
+            if existing is not None and existing.id != usuario.id:
+                raise ConflictError(detail="Ya existe un usuario con ese username")
+            usuario.username = normalized_username
         if data.email is not None:
             normalized_email = data.email.lower()
             existing = self.repository.get_by_email(normalized_email)

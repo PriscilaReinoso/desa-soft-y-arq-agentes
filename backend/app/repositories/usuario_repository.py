@@ -28,6 +28,10 @@ class UsuarioRepository:
         stmt = select(Usuario).where(Usuario.email == email)
         return self.db.scalar(stmt)
 
+    def get_by_username(self, username: str) -> Usuario | None:
+        stmt = select(Usuario).where(Usuario.username == username)
+        return self.db.scalar(stmt)
+
     def add(self, usuario: Usuario) -> Usuario:
         self.db.add(usuario)
         self.db.commit()

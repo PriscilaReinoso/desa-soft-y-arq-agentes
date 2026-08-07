@@ -29,6 +29,16 @@ class BadRequestError(DomainError):
     detail = "Solicitud inválida"
 
 
+class UnauthorizedError(DomainError):
+    status_code = 401
+    detail = "No autenticado"
+
+
+class ForbiddenError(DomainError):
+    status_code = 403
+    detail = "No autorizado"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(DomainError)
     async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
