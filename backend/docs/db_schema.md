@@ -81,6 +81,9 @@ Campos:
 - descripcion TEXT
 - categoria_id UUID FK -> categoria.id
 
+Restricciones:
+- UNIQUE(nombre)
+
 Índices:
 - INDEX(nombre)
 - INDEX(categoria_id)
