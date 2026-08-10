@@ -1,7 +1,24 @@
+# Logs
 node_modules
 dist
+dist-ssr
 *.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Entorno y variables secretas
 .env
 .env.*
+!.env.example
+
+# Caché de TypeScript / Editor
+*.tsbuildinfo
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Sistema Operativo
 .DS_Store
-npm-debug.log*
+Thumbs.db
