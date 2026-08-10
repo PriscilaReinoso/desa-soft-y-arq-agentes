@@ -95,7 +95,7 @@ alembic upgrade head
 
 ### 6. Iniciar la aplicación
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 El servidor estará escuchando por defecto en `http://127.0.0.1:8000`.

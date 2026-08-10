@@ -17,6 +17,9 @@ Se comunicara con el backend (Python y FastAPI) por la URL http://127.0.0.1:8000
 - React  
 - TypeScript  
 - Vite  
+- TanStack Query.  
+- React Hook Form.  
+- Material UI. 
 - Docker para contenerización.
 
 ## Estructura del proyecto
@@ -26,6 +29,10 @@ Se comunicara con el backend (Python y FastAPI) por la URL http://127.0.0.1:8000
 ```
 
 ## Convenciones
+
+- paleta cálida-neutra (azul pizarra #4A6B8A + ambar #C8763A), 
+- tipografia Nunito para máxima legibilidad, JetBrains Mono para datos numéricos
+- fondo #F5F3EF que evita el blanco duro.
 
 ## Arquitectura
 

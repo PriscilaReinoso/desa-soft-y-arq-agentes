@@ -1,0 +1,185 @@
+export type Usuario = {
+  id: string
+  nombre: string
+  apellido: string
+  username: string
+  email: string
+  rol: string
+}
+
+export type LoginRequest = {
+  username: string
+  password: string
+}
+
+export type LoginResponse = {
+  access_token: string
+  token_type: string
+  expires_in: number
+  usuario: Usuario
+}
+
+export type Categoria = {
+  id: string
+  nombre: string
+  descripcion: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Medida = {
+  id: string
+  unidad_medida: string
+  medida: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Articulo = {
+  id: string
+  nombre: string
+  descripcion: string | null
+  categoria_id: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Deposito = {
+  id: string
+  nombre: string
+  descripcion: string | null
+  direccion: string | null
+  cantidad_espacios: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Espacio = {
+  id: string
+  tipo: string | null
+  descripcion: string | null
+  deposito_id: string
+  max_fila: number | null
+  max_columna: number | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Inventario = {
+  id: string
+  articulo_id: string
+  medida_id: string
+  espacio_id: string | null
+  fila: number | null
+  columna: number | null
+  stock: number
+  precio_venta: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export type Kpi = {
+  label: string
+  value: string
+  delta: string
+  color: string
+  icon: string
+}
+
+export type Venta = {
+  id: string
+  date: string
+  client: string
+  items: number
+  total: number
+  status: 'Entregado' | 'Pendiente' | 'En camino'
+  payment: string
+}
+
+export type VentaStatus = Venta['status']
+
+export type Proveedor = {
+  id: string
+  name: string
+  contact: string
+  email: string
+  phone: string
+  categories: string[]
+  lastOrder: string
+  balance: number
+  rating: number
+}
+
+export type ListaPrecios = {
+  id: string
+  name: string
+  description: string
+  multiplier: number
+  items: number
+  updated: string
+  active: boolean
+}
+
+export type Presupuesto = {
+  id: string
+  client: string
+  date: string
+  expiry: string
+  total: number
+  items: number
+  status: string
+}
+
+export type Renglon = {
+  code: string
+  name: string
+  qty: number
+  unit: string
+  price: number
+  subtotal: number
+}
+
+export type Producto = {
+  code: string
+  name: string
+  base: number
+}
+
+export type ArticuloItem = {
+  code: string
+  name: string
+  cat: string
+  stock: number
+  unit: string
+  cost: number
+  price: number
+  deposit: string
+  min: number
+}
+
+export type DepositoMock = {
+  name: string
+  location: string
+  capacity: number
+  items: number
+  manager: string
+  categories: string[]
+}
+
+export type LowStockItem = {
+  name: string
+  stock: number
+  min: number
+  unit: string
+}
+
+export type ChatMessage = {
+  role: 'user' | 'assistant'
+  text: string
+}
