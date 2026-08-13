@@ -1,123 +1,81 @@
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { productCategories, products as mockProducts } from '../data/mock'
-import { calculateMargin, formatCurrency } from '../lib/format'
-import type { ArticuloItem } from '../types/domain'
+import { ApiError } from '../services/http'
+import { useAltaInventario, useInventarios } from '../hooks/useInventarios'
+import { useArticulos } from '../hooks/useArticulos'
+import { useCategorias } from '../hooks/useCategorias'
+import { useDepositos } from '../hooks/useDepositos'
+import { useEspacios } from '../hooks/useEspacios'
+import { useMedidas } from '../hooks/useMedidas'
+import { formatCurrency } from '../lib/format'
+import type { InventarioAltaPayload, InventarioRow } from '../types/domain'
+import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import DataTable, { type Column } from '../components/ui/DataTable'
+import EmptyState from '../components/ui/EmptyState'
 import Field from '../components/ui/Field'
 import FilterPills from '../components/ui/FilterPills'
 import Input from '../components/ui/Input'
+import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import SearchInput from '../components/ui/SearchInput'
 import Select from '../components/ui/Select'
 
-type ArticuloFormValues = {
-  code: string
-  name: string
-  cat: string
+type AltaFormValues = {
+  articulo_id: string
+  articulo_nombre: string
+  articulo_categoria_id: string
+  medida_id: string
+  medida_unidad: string
+  medida_valor: string
+  espacio_id: string
+  espacio_deposito_id: string
+  fila: number
+  columna: number
   stock: number
-  min: number
-  unit: string
-  cost: number
-  price: number
-  deposit: string
+  precio_venta: number
 }
 
-const columns: Column<ArticuloItem>[] = [
+const columns: Column<InventarioRow>[] = [
   {
-    key: 'code',
-    header: 'Código',
-    mono: true,
-    render: (p) => <span style={{ color: 'var(--primary)', fontWeight: 500 }}>{p.code}</span>,
-  },
-  {
-    key: 'name',
-    header: 'Artículo',
-    render: (p) => (
-      <>
-        {p.name}
-        {p.stock < p.min && (
-          <span
-            style={{
-              marginLeft: 8,
-              fontSize: 10,
-              fontWeight: 700,
-              color: '#C85A3A',
-              background: '#C85A3A18',
-              padding: '1px 6px',
-              borderRadius: 99,
-            }}
-          >
-            Bajo stock
-          </span>
-        )}
-      </>
-    ),
-  },
-  {
-    key: 'cat',
+    key: 'categoria',
     header: 'Categoría',
-    render: (p) => <span style={{ color: 'var(--muted-foreground)' }}>{p.cat}</span>,
+    render: (r) => <span className="text-muted-foreground">{r.categoria}</span>,
+  },
+  {
+    key: 'articulo',
+    header: 'Artículo',
+    render: (r) => <span className="font-medium">{r.articulo}</span>,
+  },
+  {
+    key: 'medida',
+    header: 'Medida',
+    render: (r) => <span className="text-muted-foreground">{r.medida}</span>,
   },
   {
     key: 'stock',
     header: 'Stock',
     mono: true,
-    render: (p) => (
-      <span style={{ color: p.stock < p.min ? '#C85A3A' : 'var(--foreground)', fontWeight: 700 }}>
-        {p.stock} {p.unit}
-      </span>
-    ),
+    render: (r) => <span className="font-bold">{r.stock}</span>,
   },
   {
-    key: 'min',
-    header: 'Mín.',
-    mono: true,
-    render: (p) => <span style={{ color: 'var(--muted-foreground)' }}>{p.min}</span>,
+    key: 'ubicacion',
+    header: 'Ubicación',
+    render: (r) =>
+      !r.deposito && !r.espacio ? (
+        <span className="text-muted-foreground italic">Sin ubicación</span>
+      ) : (
+        <span className="text-muted-foreground">
+          {r.deposito}
+          {r.espacio ? ` · ${r.espacio}` : ''} · F{r.fila ?? '-'} C{r.columna ?? '-'}
+        </span>
+      ),
   },
   {
-    key: 'deposit',
-    header: 'Depósito',
-    render: (p) => <span style={{ color: 'var(--muted-foreground)' }}>{p.deposit}</span>,
-  },
-  { key: 'cost', header: 'Costo', mono: true, render: (p) => formatCurrency(p.cost) },
-  {
-    key: 'price',
+    key: 'precio_venta',
     header: 'P. Venta',
     mono: true,
-    render: (p) => <span style={{ fontWeight: 700 }}>{formatCurrency(p.price)}</span>,
-  },
-  {
-    key: 'margin',
-    header: 'Margen',
-    render: (p) => {
-      const margin = calculateMargin(p.price, p.cost)
-      const color = margin > 35 ? '#7B9A4A' : '#4A6B8A'
-      return (
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color,
-            background: `${color}18`,
-            padding: '2px 8px',
-            borderRadius: 99,
-          }}
-        >
-          {margin}%
-        </span>
-      )
-    },
-  },
-  {
-    key: 'edit',
-    header: '',
-    render: () => (
-      <Button variant="outline" size="xs" type="button">
-        Editar
-      </Button>
-    ),
+    render: (r) => <span className="font-bold">{formatCurrency(r.precio_venta)}</span>,
   },
 ]
 
@@ -125,168 +83,399 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('Todos')
   const [showForm, setShowForm] = useState(false)
-  const [items, setItems] = useState<ArticuloItem[]>(mockProducts)
+  const [articuloMode, setArticuloMode] = useState<'existente' | 'nuevo'>('existente')
+  const [medidaMode, setMedidaMode] = useState<'existente' | 'nuevo'>('existente')
+  const [espacioMode, setEspacioMode] = useState<'ninguno' | 'existente' | 'nuevo'>('ninguno')
+
+  const inventariosQuery = useInventarios()
+  const altaMutation = useAltaInventario()
+  const articulosQuery = useArticulos({ enabled: showForm })
+  const categoriasQuery = useCategorias({ enabled: showForm })
+  const medidasQuery = useMedidas({ enabled: showForm })
+  const depositosQuery = useDepositos({ enabled: showForm })
+  const espaciosQuery = useEspacios({ enabled: showForm })
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ArticuloFormValues>({
+  } = useForm<AltaFormValues>({
     defaultValues: {
-      code: '',
-      name: '',
-      cat: 'Fijaciones',
+      articulo_id: '',
+      articulo_nombre: '',
+      articulo_categoria_id: '',
+      medida_id: '',
+      medida_unidad: '',
+      medida_valor: '',
+      espacio_id: '',
+      espacio_deposito_id: '',
+      fila: 0,
+      columna: 0,
       stock: 0,
-      min: 50,
-      unit: 'unid.',
-      cost: 0,
-      price: 0,
-      deposit: 'Principal',
+      precio_venta: 0,
     },
   })
 
-  const filtered = useMemo(
+  const rows = useMemo<InventarioRow[]>(
     () =>
-      items.filter((p) => {
-        const matchCat = cat === 'Todos' || p.cat === cat
-        const term = search.toLowerCase()
-        const matchSearch = p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)
-        return matchCat && matchSearch
-      }),
-    [items, cat, search],
+      (inventariosQuery.data ?? []).map((inv) => ({
+        id: inv.id,
+        categoria: inv.articulo.categoria.nombre,
+        articulo: inv.articulo.nombre,
+        medida: `${inv.medida.unidad_medida} ${inv.medida.medida}`.trim(),
+        deposito: inv.espacio?.deposito.nombre ?? null,
+        espacio: inv.espacio ? inv.espacio.tipo ?? inv.espacio.descripcion ?? '' : null,
+        fila: inv.fila,
+        columna: inv.columna,
+        stock: inv.stock,
+        precio_venta: Number(inv.precio_venta),
+      })),
+    [inventariosQuery.data],
   )
 
-  const onSubmit = (values: ArticuloFormValues) => {
-    const nuevo: ArticuloItem = {
-      code: values.code,
-      name: values.name,
-      cat: values.cat,
-      stock: Number(values.stock),
-      min: Number(values.min),
-      unit: values.unit,
-      cost: Number(values.cost),
-      price: Number(values.price),
-      deposit: values.deposit,
-    }
-    setItems((prev) => [nuevo, ...prev])
+  const categorias = useMemo(() => Array.from(new Set(rows.map((r) => r.categoria))), [rows])
+  const categoryOptions = useMemo(() => ['Todos', ...categorias], [categorias])
+
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) => {
+        const matchCat = cat === 'Todos' || r.categoria === cat
+        const term = search.toLowerCase()
+        const matchSearch =
+          r.articulo.toLowerCase().includes(term) || r.categoria.toLowerCase().includes(term)
+        return matchCat && matchSearch
+      }),
+    [rows, cat, search],
+  )
+
+  const depositoName = useMemo(
+    () => new Map((depositosQuery.data ?? []).map((d) => [d.id, d.nombre])),
+    [depositosQuery.data],
+  )
+
+  const closeForm = () => {
     setShowForm(false)
     reset()
   }
 
-  const categoriesForSelect = productCategories.filter((c) => c !== 'Todos')
+  const onSubmit = (values: AltaFormValues) => {
+    const payload: InventarioAltaPayload = {
+      articulo:
+        articuloMode === 'existente'
+          ? { id: values.articulo_id }
+          : { nombre: values.articulo_nombre, categoria_id: values.articulo_categoria_id },
+      medida:
+        medidaMode === 'existente'
+          ? { id: values.medida_id }
+          : { unidad_medida: values.medida_unidad, medida: values.medida_valor },
+      espacio:
+        espacioMode === 'ninguno'
+          ? null
+          : espacioMode === 'existente'
+            ? { id: values.espacio_id }
+            : { deposito_id: values.espacio_deposito_id },
+      fila: values.fila || null,
+      columna: values.columna || null,
+      stock: Number(values.stock),
+      precio_venta: Number(values.precio_venta),
+    }
+    altaMutation.mutate(payload, {
+      onSuccess: () => closeForm(),
+    })
+  }
+
+  const inventarioError = (() => {
+    if (!inventariosQuery.error) return null
+    return inventariosQuery.error instanceof ApiError
+      ? inventariosQuery.error.message
+      : inventariosQuery.error.message
+  })()
+
+  const altaError = (() => {
+    if (!altaMutation.error) return null
+    return altaMutation.error instanceof ApiError
+      ? altaMutation.error.message
+      : altaMutation.error.message
+  })()
+
+  const maestroError = (() => {
+    const queries = [articulosQuery, categoriasQuery, medidasQuery, depositosQuery, espaciosQuery]
+    const failed = queries.find((q) => q.isError)
+    if (!failed?.error) return null
+    return failed.error instanceof ApiError ? failed.error.message : failed.error.message
+  })()
+
+  if (inventariosQuery.isPending) {
+    return (
+      <PageContainer>
+        <EmptyState message="Cargando inventario…" />
+      </PageContainer>
+    )
+  }
+
+  if (inventariosQuery.isError) {
+    return (
+      <PageContainer>
+        <PageHeader title="Inventario" subtitle="No se pudo cargar el inventario desde el servidor" />
+        <Alert size="md">{inventarioError}</Alert>
+      </PageContainer>
+    )
+  }
 
   return (
-    <div style={{ padding: '32px 36px' }}>
+    <PageContainer>
       <PageHeader
         title="Inventario"
-        subtitle={`${items.length} artículos registrados`}
+        subtitle={`${rows.length} artículos registrados`}
         action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            + Nuevo artículo
-          </Button>
+          <Button onClick={() => setShowForm((v) => !v)}>+ Nuevo artículo</Button>
         }
       />
 
-      {/* New article form */}
       {showForm && (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          style={{
-            background: '#fff',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: 24,
-            marginBottom: 20,
-          }}
+          noValidate
+          className="bg-card border border-border rounded-xl p-6 mb-5"
         >
-          <h3 style={{ margin: '0 0 16px', fontWeight: 700 }}>Agregar nuevo artículo</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-            <div>
-              <Field label="Código">
-                <Input placeholder="A-000" {...register('code', { required: 'Código requerido' })} />
-              </Field>
-              {errors.code && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#C85A3A' }}>{errors.code.message}</p>}
+          <h3 className="m-0 mb-4 font-bold">Agregar nuevo artículo</h3>
+
+          {maestroError && (
+            <Alert style={{ marginBottom: 16 }}>{maestroError}</Alert>
+          )}
+
+          <div className="grid grid-cols-3 gap-3.5">
+            {/* Artículo */}
+            <div className="col-span-full border-b border-border pb-1">
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <span className="text-[13px] font-bold">Artículo</span>
+                <FilterPills
+                  options={[
+                    { value: 'existente', label: 'Existente' },
+                    { value: 'nuevo', label: 'Nuevo' },
+                  ]}
+                  active={articuloMode}
+                  onChange={(v) => setArticuloMode(v as 'existente' | 'nuevo')}
+                />
+              </div>
+              <div className={`grid gap-3.5 mt-2.5 ${articuloMode === 'existente' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {articuloMode === 'existente' ? (
+                  <Field label="Artículo" error={errors.articulo_id?.message}>
+                    <Select
+                      {...register('articulo_id', {
+                        validate: (v) => (articuloMode === 'existente' && !v ? 'Seleccioná un artículo' : true),
+                      })}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {(articulosQuery.data ?? []).map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.nombre}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : (
+                  <>
+                    <Field label="Nombre del artículo" error={errors.articulo_nombre?.message}>
+                      <Input
+                        placeholder='Ej: Tornillo 1"'
+                        {...register('articulo_nombre', {
+                          validate: (v) => (articuloMode === 'nuevo' && !v ? 'Nombre requerido' : true),
+                        })}
+                      />
+                    </Field>
+                    <Field label="Categoría" error={errors.articulo_categoria_id?.message}>
+                      <Select
+                        {...register('articulo_categoria_id', {
+                          validate: (v) => (articuloMode === 'nuevo' && !v ? 'Categoría requerida' : true),
+                        })}
+                      >
+                        <option value="">Seleccionar…</option>
+                        {(categoriasQuery.data ?? []).map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <Field label="Nombre del artículo">
-                <Input placeholder='Ej: Tornillo 1"' {...register('name', { required: 'Nombre requerido' })} />
-              </Field>
-              {errors.name && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#C85A3A' }}>{errors.name.message}</p>}
+
+            {/* Medida */}
+            <div className="col-span-full border-b border-border pb-1">
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <span className="text-[13px] font-bold">Medida</span>
+                <FilterPills
+                  options={[
+                    { value: 'existente', label: 'Existente' },
+                    { value: 'nuevo', label: 'Nueva' },
+                  ]}
+                  active={medidaMode}
+                  onChange={(v) => setMedidaMode(v as 'existente' | 'nuevo')}
+                />
+              </div>
+              <div className={`grid gap-3.5 mt-2.5 ${medidaMode === 'existente' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {medidaMode === 'existente' ? (
+                  <Field label="Medida" error={errors.medida_id?.message}>
+                    <Select
+                      {...register('medida_id', {
+                        validate: (v) => (medidaMode === 'existente' && !v ? 'Seleccioná una medida' : true),
+                      })}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {(medidasQuery.data ?? []).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.unidad_medida} {m.medida}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : (
+                  <>
+                    <Field label="Unidad" error={errors.medida_unidad?.message}>
+                      <Input
+                        placeholder="Ej: pulgada"
+                        {...register('medida_unidad', {
+                          validate: (v) => (medidaMode === 'nuevo' && !v ? 'Unidad requerida' : true),
+                        })}
+                      />
+                    </Field>
+                    <Field label="Medida" error={errors.medida_valor?.message}>
+                      <Input
+                        placeholder="Ej: 1/2"
+                        {...register('medida_valor', {
+                          validate: (v) => (medidaMode === 'nuevo' && !v ? 'Medida requerida' : true),
+                        })}
+                      />
+                    </Field>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-              <Field label="Categoría">
-                <Select {...register('cat')}>
-                  {categoriesForSelect.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+
+            {/* Espacio (opcional) */}
+            <div className="col-span-full border-b border-border pb-1">
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <span className="text-[13px] font-bold">Espacio</span>
+                <FilterPills
+                  options={[
+                    { value: 'ninguno', label: 'Sin espacio' },
+                    { value: 'existente', label: 'Existente' },
+                    { value: 'nuevo', label: 'Nuevo' },
+                  ]}
+                  active={espacioMode}
+                  onChange={(v) => setEspacioMode(v as 'ninguno' | 'existente' | 'nuevo')}
+                />
+              </div>
+              {espacioMode !== 'ninguno' && (
+                <div className="mt-2.5">
+                  {espacioMode === 'existente' ? (
+                    <Field label="Espacio" error={errors.espacio_id?.message}>
+                      <Select
+                        {...register('espacio_id', {
+                          validate: (v) => (espacioMode === 'existente' && !v ? 'Seleccioná un espacio' : true),
+                        })}
+                      >
+                        <option value="">Seleccionar…</option>
+                        {(espaciosQuery.data ?? []).map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.tipo ?? e.descripcion ?? 'Espacio'}
+                            {depositoName.get(e.deposito_id) ? ` — ${depositoName.get(e.deposito_id)}` : ''}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  ) : (
+                    <Field label="Depósito" error={errors.espacio_deposito_id?.message}>
+                      <Select
+                        {...register('espacio_deposito_id', {
+                          validate: (v) => (espacioMode === 'nuevo' && !v ? 'Seleccioná un depósito' : true),
+                        })}
+                      >
+                        <option value="">Seleccionar…</option>
+                        {(depositosQuery.data ?? []).map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.nombre}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <Field label="Stock actual">
-                <Input type="number" placeholder="0" {...register('stock', { valueAsNumber: true })} />
-              </Field>
-            </div>
-            <div>
-              <Field label="Stock mínimo">
-                <Input type="number" placeholder="50" {...register('min', { valueAsNumber: true })} />
-              </Field>
-            </div>
-            <div>
-              <Field label="Unidad">
-                <Input placeholder="unid." {...register('unit')} />
-              </Field>
-            </div>
-            <div>
-              <Field label="Costo ($)">
-                <Input type="number" placeholder="0.00" step="0.01" {...register('cost', { valueAsNumber: true })} />
-              </Field>
-            </div>
-            <div>
-              <Field label="Precio venta ($)">
-                <Input type="number" placeholder="0.00" step="0.01" {...register('price', { valueAsNumber: true })} />
-              </Field>
-            </div>
-            <div>
-              <Field label="Depósito">
-                <Input placeholder="Principal" {...register('deposit')} />
+
+            <Field label="Fila">
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                {...register('fila', { valueAsNumber: true })}
+              />
+            </Field>
+            <Field label="Columna">
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                {...register('columna', { valueAsNumber: true })}
+              />
+            </Field>
+            <Field label="Stock" error={errors.stock?.message}>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                {...register('stock', {
+                  valueAsNumber: true,
+                  validate: (v) => (Number.isFinite(v) && v >= 0 ? true : 'Stock requerido'),
+                })}
+              />
+            </Field>
+            <div className="col-span-full">
+              <Field label="Precio de venta ($)" error={errors.precio_venta?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  {...register('precio_venta', {
+                    valueAsNumber: true,
+                    validate: (v) => (Number.isFinite(v) && v >= 0 ? true : 'Precio de venta requerido'),
+                  })}
+                />
               </Field>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-            <Button type="submit" size="sm">
-              Guardar
+
+          {altaError && (
+            <Alert style={{ marginTop: 14 }}>{altaError}</Alert>
+          )}
+
+          <div className="flex gap-2.5 mt-4">
+            <Button type="submit" size="sm" disabled={altaMutation.isPending}>
+              {altaMutation.isPending ? 'Guardando…' : 'Guardar'}
             </Button>
-            <Button
-              type="button"
-              variant="muted"
-              size="sm"
-              onClick={() => {
-                setShowForm(false)
-                reset()
-              }}
-            >
+            <Button type="button" variant="muted" size="sm" onClick={closeForm}>
               Cancelar
             </Button>
           </div>
         </form>
       )}
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="flex gap-3 mb-4 items-center flex-wrap">
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o código…"
+          placeholder="Buscar por nombre o categoría…"
         />
-        <FilterPills options={productCategories} active={cat} onChange={setCat} />
+        <FilterPills options={categoryOptions} active={cat} onChange={setCat} />
       </div>
 
-      {/* Table */}
-      <DataTable columns={columns} rows={filtered} rowKey={(p) => p.code} />
-    </div>
+      <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+    </PageContainer>
   )
 }

@@ -1,32 +1,30 @@
+export type FilterOption = { value: string; label: string }
+
 type Props = {
-  options: string[]
+  options: (string | FilterOption)[]
   active: string
   onChange: (value: string) => void
 }
 
 export default function FilterPills({ options, active, onChange }: Props) {
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+    <div className="flex gap-1.5 flex-wrap">
       {options.map((option) => {
-        const isActive = option === active
+        const value = typeof option === 'string' ? option : option.value
+        const label = typeof option === 'string' ? option : option.label
+        const isActive = value === active
         return (
           <button
-            key={option}
+            key={value}
             type="button"
-            onClick={() => onChange(option)}
-            style={{
-              padding: '7px 14px',
-              border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-              borderRadius: 99,
-              background: isActive ? 'var(--primary)' : '#fff',
-              color: isActive ? '#fff' : 'var(--foreground)',
-              fontFamily: 'inherit',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            onClick={() => onChange(value)}
+            className={`px-[14px] py-[7px] rounded-full text-xs font-semibold cursor-pointer ${
+              isActive
+                ? 'border-[1.5px] border-primary bg-primary text-white'
+                : 'border border-border bg-card text-foreground'
+            }`}
           >
-            {option}
+            {label}
           </button>
         )
       })}

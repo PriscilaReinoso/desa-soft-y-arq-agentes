@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { listMedidas } from '../services/medidas.service'
 
-export function useMedidas() {
+export function useMedidas(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['medidas'],
     queryFn: () => listMedidas(),
+    ...options,
   })
 }

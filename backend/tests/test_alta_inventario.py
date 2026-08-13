@@ -47,7 +47,7 @@ class TestAltaInventario:
         assert body["stock"] == 4
         assert body["fila"] == 1
         assert body["columna"] == 2
-        assert body["espacio_id"] is not None
+        assert body["espacio"] is not None
         assert float(body["precio_venta"]) == 12.5
         assert any(a["nombre"] == "Martillo" for a in client.get("/api/v1/articulos", headers=admin_headers).json())
         assert any(
@@ -75,9 +75,9 @@ class TestAltaInventario:
         r = client.post("/api/v1/inventarios/alta", json=payload, headers=admin_headers)
         assert r.status_code == 201, r.text
         body = r.json()
-        assert body["articulo_id"] == articulo["id"]
-        assert body["medida_id"] == medida["id"]
-        assert body["espacio_id"] == espacio["id"]
+        assert body["articulo"]["id"] == articulo["id"]
+        assert body["medida"]["id"] == medida["id"]
+        assert body["espacio"]["id"] == espacio["id"]
         assert len(client.get("/api/v1/articulos", headers=admin_headers).json()) == 1
         assert len(client.get("/api/v1/espacios", headers=admin_headers).json()) == 1
 
@@ -92,7 +92,7 @@ class TestAltaInventario:
         assert r.status_code == 201, r.text
         body = r.json()
         assert body["stock"] == 0
-        assert body["espacio_id"] is None
+        assert body["espacio"] is None
         assert body["fila"] is None
         assert body["columna"] is None
 

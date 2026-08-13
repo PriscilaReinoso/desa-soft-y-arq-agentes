@@ -5,6 +5,7 @@ import type { ListaPrecios, Producto } from '../types/domain'
 import Button from '../components/ui/Button'
 import DataTable, { type Column } from '../components/ui/DataTable'
 import EmptyState from '../components/ui/EmptyState'
+import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 
 const previewColumns: Column<Producto>[] = [
@@ -12,14 +13,14 @@ const previewColumns: Column<Producto>[] = [
     key: 'code',
     header: 'Código',
     mono: true,
-    render: (p) => <span style={{ color: 'var(--primary)' }}>{p.code}</span>,
+    render: (p) => <span className="text-primary">{p.code}</span>,
   },
-  { key: 'name', header: 'Artículo', render: (p) => <span style={{ fontWeight: 600 }}>{p.name}</span> },
+  { key: 'name', header: 'Artículo', render: (p) => <span className="font-semibold">{p.name}</span> },
   {
     key: 'base',
     header: 'Precio base',
     mono: true,
-    render: (p) => <span style={{ color: 'var(--muted-foreground)' }}>{formatCurrency(p.base)}</span>,
+    render: (p) => <span className="text-muted-foreground">{formatCurrency(p.base)}</span>,
   },
 ]
 
@@ -33,80 +34,43 @@ function PriceListCard({ list, selected, onToggle }: { list: ListaPrecios; selec
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onToggle()
       }}
-      style={{
-        background: isSelected ? 'var(--primary)' : '#fff',
-        border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-        borderRadius: 12,
-        padding: '16px 18px',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-      }}
+      className={`px-[18px] py-4 cursor-pointer transition-all duration-150 rounded-xl border-[1.5px] ${
+        isSelected ? 'bg-primary border-primary' : 'bg-card border-border'
+      }`}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="flex justify-between items-start">
         <div>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 14,
-              color: isSelected ? '#fff' : 'var(--foreground)',
-              marginBottom: 2,
-            }}
-          >
+          <div className={`font-bold text-sm mb-0.5 ${isSelected ? 'text-white' : 'text-foreground'}`}>
             {list.name}
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--muted-foreground)',
-              marginBottom: 8,
-            }}
-          >
+          <div className={`text-xs mb-2 ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>
             {list.description}
           </div>
         </div>
         {!list.active && (
           <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              background: '#C8763A20',
-              color: isSelected ? '#fff' : '#C8763A',
-              padding: '2px 8px',
-              borderRadius: 99,
-            }}
+            className={`text-[10px] font-bold bg-[#C8763A20] rounded-full px-2 py-0.5 ${
+              isSelected ? 'text-white' : 'text-accent'
+            }`}
           >
             Inactiva
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div className="flex gap-3">
         <div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              color: isSelected ? '#fff' : 'var(--primary)',
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
+          <div className={`text-lg font-extrabold font-mono ${isSelected ? 'text-white' : 'text-primary'}`}>
             x{list.multiplier.toFixed(2)}
           </div>
-          <div style={{ fontSize: 10, color: isSelected ? 'rgba(255,255,255,0.6)' : 'var(--muted-foreground)', fontWeight: 600 }}>
+          <div className={`text-[10px] font-semibold ${isSelected ? 'text-white/60' : 'text-muted-foreground'}`}>
             multiplicador
           </div>
         </div>
         <div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              color: isSelected ? '#fff' : 'var(--foreground)',
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
+          <div className={`text-lg font-extrabold font-mono ${isSelected ? 'text-white' : 'text-foreground'}`}>
             {list.items}
           </div>
-          <div style={{ fontSize: 10, color: isSelected ? 'rgba(255,255,255,0.6)' : 'var(--muted-foreground)', fontWeight: 600 }}>
+          <div className={`text-[10px] font-semibold ${isSelected ? 'text-white/60' : 'text-muted-foreground'}`}>
             artículos
           </div>
         </div>
@@ -120,16 +84,16 @@ export default function PriceListsPage() {
   const selectedList = listasPrecios.find((l) => l.id === selected) ?? null
 
   return (
-    <div style={{ padding: '32px 36px' }}>
+    <PageContainer>
       <PageHeader
         title="Listas de precios"
         subtitle="Gestioná los precios para cada tipo de cliente"
         action={<Button>+ Nueva lista</Button>}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="grid grid-cols-[360px_1fr] gap-5 items-start">
         {/* List cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {listasPrecios.map((l) => (
             <PriceListCard
               key={l.id}
@@ -142,23 +106,15 @@ export default function PriceListsPage() {
 
         {/* Preview */}
         {selectedList ? (
-          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            <div
-              style={{
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex justify-between items-center">
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>Vista previa — {selectedList.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
+                <div className="font-bold text-[15px]">Vista previa — {selectedList.name}</div>
+                <div className="text-xs text-muted-foreground">
                   Actualizada el {selectedList.updated}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="flex gap-2">
                 <Button variant="muted" size="sm">
                   Editar multiplicador
                 </Button>
@@ -175,7 +131,7 @@ export default function PriceListsPage() {
                   header: `Precio ${selectedList.name}`,
                   mono: true,
                   render: (p) => (
-                    <span style={{ fontWeight: 800, color: 'var(--primary)' }}>
+                    <span className="font-extrabold text-primary">
                       {formatCurrency(Math.round(p.base * selectedList.multiplier))}
                     </span>
                   ),
@@ -189,6 +145,6 @@ export default function PriceListsPage() {
           <EmptyState icon="◷" message="Seleccioná una lista para ver el detalle" />
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

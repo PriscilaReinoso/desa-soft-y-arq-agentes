@@ -62,13 +62,21 @@ class TestInventarioCrud:
         )
         assert r.status_code == 201, r.text
         body = r.json()
-        assert body["articulo_id"] == articulo["id"]
-        assert body["medida_id"] == medida["id"]
-        assert body["espacio_id"] == espacio["id"]
+        assert body["articulo"]["id"] == articulo["id"]
+        assert body["medida"]["id"] == medida["id"]
+        assert body["espacio"]["id"] == espacio["id"]
         assert body["fila"] == 2
         assert body["columna"] == 3
         assert body["stock"] == 5
         assert float(body["precio_venta"]) == 10.5
+        assert "articulo_id" not in body
+        assert "medida_id" not in body
+        assert "espacio_id" not in body
+        assert body["articulo"]["categoria"]["id"] == articulo["categoria_id"]
+        assert body["medida"]["id"] == medida["id"]
+        assert body["medida"]["unidad_medida"] == "unidad"
+        assert body["espacio"]["id"] == espacio["id"]
+        assert body["espacio"]["deposito"]["id"] == body["espacio"]["deposito_id"]
 
     def test_crear_inventario_sin_ubicacion_sin_stock(self, client, admin_headers):
         articulo = self._crear_articulo(client, admin_headers)
@@ -76,7 +84,7 @@ class TestInventarioCrud:
         r = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"])
         assert r.status_code == 201, r.text
         body = r.json()
-        assert body["espacio_id"] is None
+        assert body["espacio"] is None
         assert body["stock"] == 0
 
     def test_crear_combinacion_duplicada(self, client, admin_headers):
@@ -172,7 +180,15 @@ class TestInventarioCrud:
         self._crear_inventario(client, admin_headers, articulo2["id"], medida2["id"])
         r = client.get("/api/v1/inventarios", headers=admin_headers)
         assert r.status_code == 200
-        assert len(r.json()) == 2
+        body = r.json()
+        assert len(body) == 2
+        con_ubicacion = next(item for item in body if item["espacio"] is not None)
+        assert con_ubicacion["articulo"]["id"] == articulo["id"]
+        assert con_ubicacion["articulo"]["categoria"]["id"] == articulo["categoria_id"]
+        assert con_ubicacion["medida"]["id"] == medida["id"]
+        assert con_ubicacion["espacio"]["id"] == espacio["id"]
+        assert con_ubicacion["espacio"]["deposito"]["id"] == espacio["deposito_id"]
+        assert all(item["articulo"] is not None and item["medida"] is not None for item in body)
 
     def test_obtener_inventario_por_id(self, client, admin_headers):
         articulo, medida, espacio = self._crear_inventario_con_ubicacion(client, admin_headers)
@@ -181,7 +197,13 @@ class TestInventarioCrud:
         ).json()
         r = client.get(f"/api/v1/inventarios/{creado['id']}", headers=admin_headers)
         assert r.status_code == 200
-        assert r.json()["stock"] == 3
+        body = r.json()
+        assert body["stock"] == 3
+        assert body["articulo"]["id"] == articulo["id"]
+        assert body["articulo"]["categoria"]["id"] == articulo["categoria_id"]
+        assert body["medida"]["id"] == medida["id"]
+        assert body["espacio"]["id"] == espacio["id"]
+        assert body["espacio"]["deposito"]["id"] == espacio["deposito_id"]
 
     def test_obtener_inventario_inexistente(self, client, admin_headers):
         r = client.get("/api/v1/inventarios/00000000-0000-0000-0000-000000000000", headers=admin_headers)

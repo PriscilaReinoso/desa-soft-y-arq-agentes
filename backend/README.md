@@ -90,7 +90,7 @@ pip install -r requirements.txt
 
 ### 5. Aplicar migraciones a la Base de Datos
 ```bash
-alembic upgrade head
+python -m alembic upgrade head
 ```
 
 ### 6. Iniciar la aplicación

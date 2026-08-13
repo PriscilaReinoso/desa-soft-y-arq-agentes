@@ -11,15 +11,10 @@ type Props = {
 export default function ProgressBar({ value, color = 'var(--primary)', height = 4, trackColor = 'var(--muted)', style }: Props) {
   const clamped = Math.max(0, Math.min(100, value))
   return (
-    <div style={{ height, background: trackColor, borderRadius: 99, overflow: 'hidden', ...style }}>
+    <div style={{ height, background: trackColor, ...style }} className="rounded-full overflow-hidden">
       <div
-        style={{
-          height: '100%',
-          width: `${clamped}%`,
-          background: color,
-          borderRadius: 99,
-          transition: 'width 0.3s',
-        }}
+        style={{ width: `${clamped}%`, background: color }}
+        className="h-full rounded-full transition-all duration-300"
       />
     </div>
   )

@@ -1,20 +1,20 @@
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export type ButtonVariant = 'primary' | 'accent' | 'outline' | 'muted' | 'ghost'
 export type ButtonSize = 'xs' | 'sm' | 'md'
 
-const variantStyles: Record<ButtonVariant, CSSProperties> = {
-  primary: { background: 'var(--primary)', color: '#fff' },
-  accent: { background: 'var(--accent)', color: '#fff' },
-  outline: { background: 'none', color: 'var(--foreground)', border: '1px solid var(--border)' },
-  muted: { background: 'var(--muted)', color: 'var(--foreground)' },
-  ghost: { background: 'none', color: 'var(--primary)' },
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: 'bg-primary text-white',
+  accent: 'bg-accent text-white',
+  outline: 'bg-transparent text-foreground border border-border',
+  muted: 'bg-muted text-foreground',
+  ghost: 'bg-transparent text-primary',
 }
 
-const sizeStyles: Record<ButtonSize, CSSProperties> = {
-  xs: { padding: '4px 10px', fontSize: 11 },
-  sm: { padding: '9px 20px', fontSize: 13 },
-  md: { padding: '10px 20px', fontSize: 14 },
+const sizeClasses: Record<ButtonSize, string> = {
+  xs: 'px-2.5 py-1 text-[11px]',
+  sm: 'px-5 py-[9px] text-[13px]',
+  md: 'px-5 py-2.5 text-sm',
 }
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -23,25 +23,12 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
-export default function Button({ variant = 'primary', size = 'md', style, children, ...rest }: Props) {
+export default function Button({ variant = 'primary', size = 'md', className, style, children, ...rest }: Props) {
   return (
     <button
       {...rest}
-      style={{
-        border: variant === 'primary' || variant === 'accent' ? 'none' : undefined,
-        borderRadius: 8,
-        fontFamily: 'inherit',
-        fontWeight: 700,
-        cursor: 'pointer',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        lineHeight: 1.2,
-        ...variantStyles[variant],
-        ...sizeStyles[size],
-        ...style,
-      }}
+      className={`rounded-lg font-bold cursor-pointer inline-flex items-center justify-center gap-1.5 leading-[1.2] ${variantClasses[variant]} ${sizeClasses[size]} ${className ?? ''}`}
+      style={style}
     >
       {children}
     </button>

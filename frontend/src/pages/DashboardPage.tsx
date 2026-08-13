@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { kpis, lowStock, mockUsuario, recentSales, statusColor } from '../data/mock'
 import KpiCard from '../components/KpiCard'
+import PageContainer from '../components/ui/PageContainer'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -13,57 +14,41 @@ export default function DashboardPage() {
   const firstName = (usuario ?? mockUsuario).nombre
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 1100 }}>
+    <PageContainer maxWidth={1100}>
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontWeight: 800, fontSize: 24, margin: 0, color: 'var(--foreground)' }}>
+      <div className="mb-7">
+        <h1 className="font-extrabold text-2xl m-0 text-foreground">
           Buenos días, {firstName} 👋
         </h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14 }}>
+        <p className="mt-1 m-0 text-muted-foreground text-sm">
           Resumen del día — sábado 9 de agosto de 2026
         </p>
       </div>
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="grid grid-cols-4 gap-4 mb-7">
         {kpis.map((kpi) => (
           <KpiCard key={kpi.label} kpi={kpi} />
         ))}
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+      <div className="grid grid-cols-[1fr_340px] gap-5">
         {/* Recent sales */}
         <Card>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 15 }}>Ventas recientes</span>
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center">
+            <span className="font-bold text-[15px]">Ventas recientes</span>
             <Button variant="ghost" size="sm" onClick={() => navigate('/ventas')}>
               Ver todas →
             </Button>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: 'var(--muted)' }}>
+              <tr className="bg-muted">
                 {['N° Venta', 'Cliente', 'Artículos', 'Total', 'Estado'].map((h) => (
                   <th
                     key={h}
-                    style={{
-                      padding: '10px 20px',
-                      textAlign: 'left',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      color: 'var(--muted-foreground)',
-                    }}
+                    className="px-5 py-2.5 text-left text-[11px] font-bold tracking-[0.06em] uppercase text-muted-foreground"
                   >
                     {h}
                   </th>
@@ -72,14 +57,14 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {recentSales.map((s, i) => (
-                <tr key={s.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
-                  <td style={{ padding: '12px 20px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--primary)', fontWeight: 500 }}>
+                <tr key={s.id} className={i > 0 ? 'border-t border-border' : undefined}>
+                  <td className="px-5 py-3 font-mono text-xs text-primary font-medium">
                     {s.id}
                   </td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, fontWeight: 600 }}>{s.client}</td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, color: 'var(--muted-foreground)' }}>{s.items}</td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, fontWeight: 700 }}>{s.total}</td>
-                  <td style={{ padding: '12px 20px' }}>
+                  <td className="px-5 py-3 text-[13px] font-semibold">{s.client}</td>
+                  <td className="px-5 py-3 text-[13px] text-muted-foreground">{s.items}</td>
+                  <td className="px-5 py-3 text-[13px] font-bold">{s.total}</td>
+                  <td className="px-5 py-3">
                     <Badge color={statusColor[s.status]}>{s.status}</Badge>
                   </td>
                 </tr>
@@ -90,34 +75,26 @@ export default function DashboardPage() {
 
         {/* Low stock alert */}
         <Card>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 15 }}>⚠️ Stock bajo mínimo</span>
+          <div className="px-5 py-4 border-b border-border flex justify-between items-center">
+            <span className="font-bold text-[15px]">⚠️ Stock bajo mínimo</span>
             <Button variant="ghost" size="sm" onClick={() => navigate('/inventario')}>
               Ver →
             </Button>
           </div>
-          <div style={{ padding: '8px 0' }}>
+          <div className="py-2">
             {lowStock.map((item, i) => {
               const pct = Math.round((item.stock / item.min) * 100)
               return (
                 <div
                   key={item.name}
-                  style={{ padding: '12px 20px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}
+                  className={`px-5 py-3 ${i > 0 ? 'border-t border-border' : undefined}`}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{item.name}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                  <div className="font-semibold text-[13px] mb-1">{item.name}</div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[11px] text-muted-foreground">
                       {item.stock} {item.unit} de {item.min} mín.
                     </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#C8763A' }}>{pct}%</span>
+                    <span className="text-[11px] font-bold text-accent">{pct}%</span>
                   </div>
                   <ProgressBar value={pct} color={pct < 30 ? '#C85A3A' : '#C8763A'} height={4} />
                 </div>
@@ -126,9 +103,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick link to AI */}
-          <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
+          <div className="px-5 py-3 border-t border-border">
             <Button
-              style={{ width: '100%', background: 'linear-gradient(135deg, #4A6B8A 0%, #3A5A7A 100%)' }}
+              className="w-full bg-gradient-to-br from-primary to-[#3A5A7A]"
               onClick={() => navigate('/asistente')}
             >
               ✦ Consultar al Asistente IA
@@ -136,6 +113,6 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   )
 }

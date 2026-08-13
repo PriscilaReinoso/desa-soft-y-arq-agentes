@@ -6,6 +6,7 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import DataTable, { type Column } from '../components/ui/DataTable'
 import FilterPills from '../components/ui/FilterPills'
+import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 
 const columns: Column<Venta>[] = [
@@ -13,29 +14,29 @@ const columns: Column<Venta>[] = [
     key: 'id',
     header: 'N° Venta',
     mono: true,
-    render: (s) => <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{s.id}</span>,
+    render: (s) => <span className="text-primary font-semibold">{s.id}</span>,
   },
   {
     key: 'date',
     header: 'Fecha',
-    render: (s) => <span style={{ color: 'var(--muted-foreground)' }}>{s.date}</span>,
+    render: (s) => <span className="text-muted-foreground">{s.date}</span>,
   },
-  { key: 'client', header: 'Cliente', render: (s) => <span style={{ fontWeight: 600 }}>{s.client}</span> },
+  { key: 'client', header: 'Cliente', render: (s) => <span className="font-semibold">{s.client}</span> },
   {
     key: 'items',
     header: 'Artículos',
-    render: (s) => <span style={{ color: 'var(--muted-foreground)' }}>{s.items} art.</span>,
+    render: (s) => <span className="text-muted-foreground">{s.items} art.</span>,
   },
   {
     key: 'total',
     header: 'Total',
     mono: true,
-    render: (s) => <span style={{ fontSize: 14, fontWeight: 800 }}>{formatCurrency(s.total)}</span>,
+    render: (s) => <span className="text-[14px] font-extrabold">{formatCurrency(s.total)}</span>,
   },
   {
     key: 'payment',
     header: 'Pago',
-    render: (s) => <span style={{ color: 'var(--muted-foreground)' }}>{s.payment}</span>,
+    render: (s) => <span className="text-muted-foreground">{s.payment}</span>,
   },
   {
     key: 'status',
@@ -46,11 +47,11 @@ const columns: Column<Venta>[] = [
     key: 'actions',
     header: '',
     render: () => (
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         <Button variant="outline" size="xs" type="button">
           Ver
         </Button>
-        <Button variant="outline" size="xs" type="button" style={{ color: 'var(--primary)' }}>
+        <Button variant="outline" size="xs" type="button" className="text-primary">
           PDF
         </Button>
       </div>
@@ -69,7 +70,7 @@ export default function SalesPage() {
   const total = filtered.reduce((acc, s) => acc + s.total, 0)
 
   return (
-    <div style={{ padding: '32px 36px' }}>
+    <PageContainer>
       <PageHeader
         title="Ventas"
         subtitle={
@@ -80,11 +81,11 @@ export default function SalesPage() {
         action={<Button variant="accent">+ Nueva venta</Button>}
       />
 
-      <div style={{ marginBottom: 16 }}>
+      <div className="mb-4">
         <FilterPills options={salesStatuses} active={filter} onChange={setFilter} />
       </div>
 
       <DataTable columns={columns} rows={filtered} rowKey={(s) => s.id} cellPadding="13px 16px" />
-    </div>
+    </PageContainer>
   )
 }

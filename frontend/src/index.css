@@ -21,6 +21,13 @@
   --radius-lg: calc(var(--radius) + 4px);
 }
 
+@theme {
+  --font-sans: 'Nunito', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-danger: #C85A3A;
+  --color-success: #7B9A4A;
+}
+
 :root {
   --background: #F5F3EF;
   --foreground: #1E2A35;
@@ -50,7 +57,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;

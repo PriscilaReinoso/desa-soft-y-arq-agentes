@@ -49,7 +49,12 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
     try {
       const body = (await response.json()) as { detail?: unknown; message?: string }
       if (typeof body.detail === 'string') message = body.detail
-      else if (body.message) message = body.message
+      else if (Array.isArray(body.detail)) {
+        const parts = body.detail
+          .map((d) => (typeof d === 'object' && d && typeof (d as { msg?: unknown }).msg === 'string' ? (d as { msg: string }).msg : null))
+          .filter((m): m is string => Boolean(m))
+        if (parts.length > 0) message = parts.join(', ')
+      } else if (body.message) message = body.message
     } catch {
       // keep default message
     }

@@ -26,23 +26,15 @@ export default function DataTable<T>({
   cellPadding = '12px 16px',
 }: Props<T>) {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <table className="w-full border-collapse">
         <thead>
-          <tr style={{ background: 'var(--muted)' }}>
+          <tr className="bg-muted">
             {columns.map((col) => (
               <th
                 key={col.key}
-                style={{
-                  padding: headerPadding,
-                  textAlign: 'left',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: 'var(--muted-foreground)',
-                  whiteSpace: 'nowrap',
-                }}
+                style={{ padding: headerPadding }}
+                className="text-left text-[11px] font-bold tracking-[0.06em] uppercase text-muted-foreground whitespace-nowrap"
               >
                 {col.header}
               </th>
@@ -51,19 +43,18 @@ export default function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={rowKey(row)} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+            <tr key={rowKey(row)} className={i > 0 ? 'border-t border-border' : undefined}>
               {columns.map((col) => (
                 <td
                   key={col.key}
                   style={{
                     padding: cellPadding,
-                    fontSize: 13,
-                    color: 'var(--foreground)',
-                    fontFamily: col.mono ? "'JetBrains Mono', monospace" : 'inherit',
-                    textAlign: col.align ?? 'left',
-                    whiteSpace: col.nowrap ? 'nowrap' : 'normal',
+                    fontFamily: col.mono ? "'JetBrains Mono', monospace" : undefined,
+                    textAlign: col.align ?? undefined,
+                    whiteSpace: col.nowrap ? 'nowrap' : undefined,
                     ...col.tdStyle,
                   }}
+                  className="text-[13px] text-foreground"
                 >
                   {col.render(row)}
                 </td>

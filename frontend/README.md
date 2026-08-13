@@ -50,12 +50,12 @@ frontend/
 
 ## ⚙️ Pasos de Instalación y Ejecución
 
-### 2. Instalar las dependencias del proyecto
+### 1. Instalar las dependencias del proyecto
 ```bash
 npm install
 ```
 
-### 3. Iniciar el servidor de desarrollo
+### 2. Iniciar el servidor de desarrollo
 ```bash
 npm run dev
 ```

@@ -70,18 +70,68 @@ export type Espacio = {
   deleted_at: string | null
 }
 
-export type Inventario = {
+export type ArticuloConCategoria = Articulo & {
+  categoria: Categoria
+}
+
+export type EspacioConDeposito = Espacio & {
+  deposito: Deposito
+}
+
+export type InventarioOut = {
   id: string
-  articulo_id: string
-  medida_id: string
-  espacio_id: string | null
   fila: number | null
   columna: number | null
   stock: number
   precio_venta: number
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
+  articulo: ArticuloConCategoria
+  medida: Medida
+  espacio: EspacioConDeposito | null
+}
+
+export type InventarioRow = {
+  id: string
+  categoria: string
+  articulo: string
+  medida: string
+  deposito: string | null
+  espacio: string | null
+  fila: number | null
+  columna: number | null
+  stock: number
+  precio_venta: number
+}
+
+export type ArticuloAltaPayload = {
+  id?: string
+  nombre?: string
+  descripcion?: string | null
+  categoria_id?: string
+}
+
+export type MedidaAltaPayload = {
+  id?: string
+  unidad_medida?: string
+  medida?: string
+}
+
+export type EspacioAltaPayload = {
+  id?: string
+  deposito_id?: string
+  tipo?: string | null
+  descripcion?: string | null
+  max_fila?: number | null
+  max_columna?: number | null
+}
+
+export type InventarioAltaPayload = {
+  articulo: ArticuloAltaPayload
+  medida: MedidaAltaPayload
+  espacio?: EspacioAltaPayload | null
+  fila?: number | null
+  columna?: number | null
+  stock: number
+  precio_venta: number
 }
 
 export type Kpi = {

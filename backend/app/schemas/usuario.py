@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -33,6 +32,3 @@ class UsuarioOut(BaseModel):
     email: EmailStr
     role_id: uuid.UUID
     activo: bool
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None

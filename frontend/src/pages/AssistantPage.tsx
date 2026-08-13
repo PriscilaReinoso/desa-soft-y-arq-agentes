@@ -1,19 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { assistantInitialMessages, assistantSuggestions } from '../data/mock'
+import { sendMessage } from '../services/chat.service'
 import type { ChatMessage } from '../types/domain'
-
-const simulateResponse = (question: string): string => {
-  const q = question.toLowerCase()
-  if (q.includes('stock bajo') || q.includes('mínimo') || q.includes('reponer'))
-    return "Detecté **27 artículos bajo su stock mínimo**. Los más urgentes son:\n\n• Tornillo autorroscante 1\" → 42 unid. (mín. 200)\n• Cinta de teflón x 10m → 8 unid. (mín. 50)\n• Lija grano 120 → 15 unid. (mín. 100)\n• Cable unipolar 2.5mm rojo → 12 mt. (mín. 50)\n\n¿Quiero generar una orden de compra para estos artículos?"
-  if (q.includes('similares') || q.includes('similar'))
-    return "Para el artículo **A-001 (Tornillo autorroscante 1\")** encontré los siguientes similares en inventario:\n\n• A-002 — Tornillo hex 3/8 x 2\" (stock: 380)\n• A-003 — Tornillo parker 8 x 1\" (stock: 94)\n\nTambién hay productos de reemplazo ofrecidos por tu proveedor **MetalSur** con 15% de descuento esta semana."
-  if (q.includes('más vendidos') || q.includes('vendido'))
-    return "Los **5 artículos más vendidos** en agosto son:\n\n1. Cable unipolar 2.5mm — 340 mt. vendidos\n2. Tornillo autorroscante 1\" — 1.820 unid.\n3. Disyuntor bipolar 32A — 48 unid.\n4. Cinta de teflón x 10m — 210 unid.\n5. Pintura látex blanca 4L — 62 unid.\n\n¿Querés ver el detalle de alguno en particular?"
-  if (q.includes('metalsur') || q.includes('compras'))
-    return "En compras a **MetalSur** durante 2026 registré:\n\n• Enero: $28.400\n• Febrero: $31.200\n• Marzo: $19.800\n• Abril–Julio: $142.600\n• **Total YTD: $221.900**\n\nEl saldo pendiente actual es de $12.400. ¿Querés ver el historial completo de pedidos?"
-  return "Entendí tu consulta. Según el inventario actual, puedo decirte que tenés **1.842 artículos registrados** en 4 depósitos, con 27 productos bajo stock mínimo y 34 órdenes de venta pendientes.\n\n¿Querés que profundice en algún aspecto específico del inventario?"
-}
 
 function renderText(text: string) {
   const lines = text.split('\n')
@@ -28,78 +16,65 @@ function renderText(text: string) {
   })
 }
 
-const assistantAvatar = {
-  width: 30,
-  height: 30,
-  borderRadius: 8,
-  background: 'linear-gradient(135deg, #4A6B8A 0%, #3A5A7A 100%)',
-  color: '#fff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 14,
-  flexShrink: 0,
-} as const
+const assistantAvatarClass =
+  'w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-primary to-[#3A5A7A] text-white flex items-center justify-center text-sm shrink-0'
 
 export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(assistantInitialMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const conversationIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     if (!text.trim() || loading) return
     const userMsg: ChatMessage = { role: 'user', text }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setLoading(true)
-    setTimeout(() => {
-      const response = simulateResponse(text)
-      setMessages((prev) => [...prev, { role: 'assistant', text: response }])
+    try {
+      const { answer, conversation_id } = await sendMessage(text, conversationIdRef.current ?? undefined)
+      conversationIdRef.current = conversation_id
+      setMessages((prev) => [...prev, { role: 'assistant', text: answer }])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: 'No pude conectar con el asistente. Asegurate de que el servicio esté levantado en el puerto 8001.' },
+      ])
+    } finally {
       setLoading(false)
-    }, 1200)
+    }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div style={{ padding: '24px 36px 16px', borderBottom: '1px solid var(--border)', background: '#fff', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #4A6B8A 0%, #3A5A7A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#fff' }}>
+      <div className="px-9 pt-6 pb-4 border-b border-border bg-card shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-primary to-[#3A5A7A] flex items-center justify-center text-xl text-white">
             ✦
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--foreground)' }}>Asistente IA</div>
-            <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Consultas inteligentes sobre tu inventario</div>
+            <div className="font-extrabold text-lg text-foreground">Asistente IA</div>
+            <div className="text-xs text-muted-foreground">Consultas inteligentes sobre tu inventario</div>
           </div>
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: '#7B9A4A18', color: '#7B9A4A', padding: '4px 12px', borderRadius: 99 }}>
+          <span className="ml-auto text-[11px] font-bold bg-success/10 text-success px-3 py-1 rounded-full">
             ● En línea
           </span>
         </div>
 
         {/* Quick suggestions */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+        <div className="flex gap-2 mt-3.5 flex-wrap">
           {assistantSuggestions.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => send(s)}
-              style={{
-                padding: '6px 14px',
-                background: 'var(--muted)',
-                border: '1px solid var(--border)',
-                borderRadius: 99,
-                fontFamily: 'inherit',
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--foreground)',
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
+              className="px-[14px] py-1.5 bg-muted border border-border rounded-full text-xs font-semibold text-foreground cursor-pointer transition-colors"
             >
               {s}
             </button>
@@ -108,44 +83,32 @@ export default function AssistantPage() {
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 36px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="flex-1 overflow-y-auto px-9 py-6 flex flex-col gap-4">
         {messages.map((m, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'assistant' && (
-              <div style={{ ...assistantAvatar, marginRight: 10, marginTop: 2 }}>✦</div>
+              <div className={`${assistantAvatarClass} mr-2.5 mt-0.5`}>✦</div>
             )}
             <div
-              style={{
-                maxWidth: '72%',
-                padding: '12px 16px',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: m.role === 'user' ? 'var(--primary)' : '#fff',
-                color: m.role === 'user' ? '#fff' : 'var(--foreground)',
-                border: m.role === 'assistant' ? '1px solid var(--border)' : 'none',
-                fontSize: 14,
-                lineHeight: 1.6,
-                fontWeight: 500,
-              }}
+              className={`max-w-[72%] px-4 py-3 text-sm leading-[1.6] font-medium ${
+                m.role === 'user'
+                  ? 'rounded-[16px_16px_4px_16px] bg-primary text-white'
+                  : 'rounded-[16px_16px_16px_4px] bg-card text-foreground border border-border'
+              }`}
             >
               {renderText(m.text)}
             </div>
           </div>
         ))}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <div style={{ ...assistantAvatar }}>✦</div>
-            <div style={{ padding: '14px 18px', background: '#fff', border: '1px solid var(--border)', borderRadius: '16px 16px 16px 4px', display: 'flex', gap: 5, alignItems: 'center' }}>
+          <div className="flex items-start gap-2.5">
+            <div className={assistantAvatarClass}>✦</div>
+            <div className="px-[18px] py-3.5 bg-card border border-border rounded-[16px_16px_16px_4px] flex gap-1.5 items-center">
               {[0, 1, 2].map((j) => (
                 <div
                   key={j}
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: 'var(--primary)',
-                    opacity: 0.4,
-                    animation: `bounce 1s ease-in-out ${j * 0.2}s infinite`,
-                  }}
+                  style={{ animation: `bounce 1s ease-in-out ${j * 0.2}s infinite` }}
+                  className="w-[7px] h-[7px] rounded-full bg-primary opacity-40"
                 />
               ))}
             </div>
@@ -155,8 +118,8 @@ export default function AssistantPage() {
       </div>
 
       {/* Input */}
-      <div style={{ padding: '16px 36px 24px', borderTop: '1px solid var(--border)', background: '#fff', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 10 }}>
+      <div className="px-9 pt-4 pb-6 border-t border-border bg-card shrink-0">
+        <div className="flex gap-2.5">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -167,17 +130,7 @@ export default function AssistantPage() {
               }
             }}
             placeholder="Preguntá sobre tu inventario…"
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              border: '1.5px solid var(--border)',
-              borderRadius: 10,
-              fontFamily: 'inherit',
-              fontSize: 14,
-              background: 'var(--background)',
-              outline: 'none',
-              transition: 'border-color 0.15s',
-            }}
+            className="flex-1 px-4 py-3 border-[1.5px] border-border rounded-[10px] text-sm bg-background outline-none transition-colors"
             onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
             onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
           />
@@ -185,23 +138,16 @@ export default function AssistantPage() {
             type="button"
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
-            style={{
-              padding: '12px 20px',
-              background: input.trim() && !loading ? 'var(--primary)' : 'var(--muted)',
-              border: 'none',
-              borderRadius: 10,
-              color: input.trim() && !loading ? '#fff' : 'var(--muted-foreground)',
-              fontFamily: 'inherit',
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-              transition: 'background 0.15s',
-            }}
+            className={`px-5 py-3 rounded-[10px] text-sm font-bold transition-colors ${
+              input.trim() && !loading
+                ? 'bg-primary text-white cursor-pointer'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            }`}
           >
             Enviar
           </button>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 8, textAlign: 'center' }}>
+        <div className="text-[11px] text-muted-foreground mt-2 text-center">
           Presioná Enter para enviar · Los datos provienen de tu inventario en tiempo real
         </div>
       </div>

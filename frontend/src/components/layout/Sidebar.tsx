@@ -29,41 +29,18 @@ export default function Sidebar() {
   const user = usuario ?? mockUsuario
 
   return (
-    <aside
-      style={{
-        width: 224,
-        background: '#FFFFFF',
-        borderRight: '1px solid var(--border)',
-        padding: '0 0 24px 0',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        overflowY: 'auto',
-      }}
-    >
+    <aside className="w-[224px] bg-card border-r border-border flex flex-col shrink-0 overflow-y-auto pb-6">
       {/* Logo */}
-      <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span
-            style={{
-              width: 34,
-              height: 34,
-              background: 'var(--primary)',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
-              color: '#fff',
-            }}
-          >
+      <div className="px-5 pt-6 pb-5 border-b border-border">
+        <div className="flex items-center gap-2.5">
+          <span className="w-[34px] h-[34px] bg-primary rounded-lg flex items-center justify-center text-lg text-white">
             🔧
           </span>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--foreground)', lineHeight: 1.1 }}>
+            <div className="font-extrabold text-[15px] text-foreground leading-[1.1]">
               FerreStock
             </div>
-            <div style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 500 }}>
+            <div className="text-[11px] text-muted-foreground font-medium">
               Gestión de inventario
             </div>
           </div>
@@ -71,59 +48,30 @@ export default function Sidebar() {
       </div>
 
       {/* Nav groups */}
-      <nav style={{ flex: 1, padding: '12px 10px 0' }}>
+      <nav className="flex-1 px-2.5 pt-3">
         {groups.map((group) => {
           const items = NAV.filter((n) => n.group === group)
           return (
-            <div key={group} style={{ marginBottom: 8 }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'var(--muted-foreground)',
-                  padding: '10px 10px 4px',
-                }}
-              >
+            <div key={group} className="mb-2">
+              <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground px-2.5 pt-2.5 pb-1">
                 {group}
               </div>
               {items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  style={({ isActive }) => ({
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '9px 10px',
-                    borderRadius: 8,
-                    textDecoration: 'none',
-                    background: isActive ? 'var(--primary)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--foreground)',
-                    fontFamily: 'inherit',
-                    fontSize: 14,
-                    fontWeight: isActive ? 700 : 500,
-                    transition: 'background 0.15s, color 0.15s',
-                  })}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-2.5 px-2.5 py-[9px] rounded-lg no-underline text-sm transition-colors ${
+                      isActive ? 'bg-primary text-white font-bold' : 'text-foreground font-medium'
+                    }`
+                  }
                 >
                   {({ isActive }) => (
                     <>
-                      <span style={{ fontSize: 16, opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                      <span className={`text-base ${isActive ? 'opacity-100' : 'opacity-60'}`}>{item.icon}</span>
                       {item.label}
                       {item.badge && (
-                        <span
-                          style={{
-                            marginLeft: 'auto',
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background: '#C8763A',
-                            color: '#fff',
-                            borderRadius: 99,
-                            padding: '1px 6px',
-                          }}
-                        >
+                        <span className="ml-auto text-[10px] font-bold bg-accent text-white rounded-full px-1.5 py-px">
                           {item.badge}
                         </span>
                       )}
@@ -137,57 +85,22 @@ export default function Sidebar() {
       </nav>
 
       {/* User footer */}
-      <div style={{ margin: '0 10px' }}>
-        <div
-          style={{
-            padding: '12px',
-            background: 'var(--muted)',
-            borderRadius: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: 'var(--primary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 13,
-              flexShrink: 0,
-            }}
-          >
+      <div className="mx-2.5">
+        <div className="p-3 bg-muted rounded-[10px] flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-[13px] shrink-0">
             {initials(`${user.nombre} ${user.apellido}`)}
           </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="overflow-hidden flex-1">
+            <div className="font-bold text-[13px] text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
               {user.nombre} {user.apellido}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{user.rol}</div>
+            <div className="text-[11px] text-muted-foreground">{user.rol}</div>
           </div>
         </div>
         <button
           type="button"
           onClick={logout}
-          style={{
-            width: '100%',
-            marginTop: 8,
-            padding: '7px 12px',
-            background: 'none',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            color: 'var(--muted-foreground)',
-            fontFamily: 'inherit',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
+          className="w-full mt-2 px-3 py-[7px] bg-transparent border border-border rounded-lg text-muted-foreground text-xs font-semibold cursor-pointer"
         >
           Cerrar sesión
         </button>

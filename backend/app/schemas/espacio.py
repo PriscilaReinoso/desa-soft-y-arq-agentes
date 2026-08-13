@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +28,3 @@ class EspacioOut(BaseModel):
     deposito_id: uuid.UUID
     max_fila: int | None
     max_columna: int | None
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None

@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,6 +19,3 @@ class RolOut(BaseModel):
     id: uuid.UUID
     nombre: str
     descripcion: str | None
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None

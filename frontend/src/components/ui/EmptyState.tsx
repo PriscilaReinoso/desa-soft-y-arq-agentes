@@ -5,18 +5,9 @@ type Props = {
 
 export default function EmptyState({ icon = '◷', message }: Props) {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        padding: 40,
-        textAlign: 'center',
-        color: 'var(--muted-foreground)',
-      }}
-    >
-      <div style={{ fontSize: 40, marginBottom: 12 }}>{icon}</div>
-      <div style={{ fontWeight: 600, fontSize: 14 }}>{message}</div>
+    <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground">
+      <div className="text-[40px] mb-3">{icon}</div>
+      <div className="text-sm font-semibold">{message}</div>
     </div>
   )
 }

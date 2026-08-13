@@ -10,6 +10,7 @@ artículos, depósitos, ventas, proveedores y listas de precios; expone
 módulos de preventas y presupuestos (exportables a PDF), se integrara con un
 asistente inteligente para consultas sobre inventario, productos similares y
 sugerencias de compra.
+Dentro de \docs hay mas definicion util de la funcionalidad.
 
 ## Stack tecnológico
 

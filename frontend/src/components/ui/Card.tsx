@@ -10,13 +10,8 @@ export default function Card({ children, style, onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      style={{
-        background: '#fff',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        overflow: 'hidden',
-        ...style,
-      }}
+      className="bg-card border border-border rounded-xl overflow-hidden"
+      style={style}
     >
       {children}
     </div>

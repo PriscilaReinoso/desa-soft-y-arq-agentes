@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,6 +23,3 @@ class DepositoOut(BaseModel):
     descripcion: str | None
     direccion: str | None
     cantidad_espacios: int
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None

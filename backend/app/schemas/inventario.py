@@ -1,8 +1,13 @@
 import uuid
-from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.articulo import ArticuloOut
+from app.schemas.categoria import CategoriaOut
+from app.schemas.deposito import DepositoOut
+from app.schemas.espacio import EspacioOut
+from app.schemas.medida import MedidaOut
 
 
 class InventarioCreate(BaseModel):
@@ -23,17 +28,22 @@ class InventarioUpdate(BaseModel):
     precio_venta: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
 
+class ArticuloConCategoria(ArticuloOut):
+    categoria: CategoriaOut
+
+
+class EspacioConDeposito(EspacioOut):
+    deposito: DepositoOut
+
+
 class InventarioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    articulo_id: uuid.UUID
-    medida_id: uuid.UUID
-    espacio_id: uuid.UUID | None = None
     fila: int | None = None
     columna: int | None = None
     stock: int
     precio_venta: Decimal
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None
+    articulo: ArticuloConCategoria
+    medida: MedidaOut
+    espacio: EspacioConDeposito | None = None

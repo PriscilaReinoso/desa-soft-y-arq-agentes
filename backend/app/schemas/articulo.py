@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,6 +22,3 @@ class ArticuloOut(BaseModel):
     nombre: str
     descripcion: str | None
     categoria_id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime | None = None

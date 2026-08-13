@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { useLogin } from '../hooks/useLogin'
 import { ApiError } from '../services/http'
+import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
@@ -30,58 +31,30 @@ export default function LoginPage() {
   })()
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--background)',
-        padding: 24,
-      }}
-    >
-      <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="w-[380px] max-w-full">
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, justifyContent: 'center' }}>
-          <span
-            style={{
-              width: 40,
-              height: 40,
-              background: 'var(--primary)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-              color: '#fff',
-            }}
-          >
+        <div className="flex items-center gap-3 mb-6 justify-center">
+          <span className="w-10 h-10 bg-primary rounded-[10px] flex items-center justify-center text-xl text-white">
             🔧
           </span>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18, lineHeight: 1.1 }}>FerreStock</div>
-            <div style={{ fontSize: 12, color: 'var(--muted-foreground)', fontWeight: 500 }}>
+            <div className="font-extrabold text-lg leading-[1.1]">FerreStock</div>
+            <div className="text-xs text-muted-foreground font-medium">
               Gestión de inventario
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: '28px 24px',
-          }}
-        >
-          <h1 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 4px' }}>Iniciar sesión</h1>
-          <p style={{ margin: '0 0 20px', color: 'var(--muted-foreground)', fontSize: 13 }}>
+        <div className="bg-card border border-border rounded-xl px-6 py-7">
+          <h1 className="font-extrabold text-xl mb-1">Iniciar sesión</h1>
+          <p className="mb-5 text-muted-foreground text-[13px]">
             Ingresá tus credenciales para acceder al sistema
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div style={{ marginBottom: 14 }}>
-              <Field label="Usuario" htmlFor="login-username">
+            <div className="mb-3.5">
+              <Field label="Usuario" htmlFor="login-username" error={errors.username?.message}>
                 <Input
                   id="login-username"
                   placeholder="Ingresá tu usuario"
@@ -89,15 +62,10 @@ export default function LoginPage() {
                   {...register('username', { required: 'Ingresá tu usuario' })}
                 />
               </Field>
-              {errors.username && (
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#C85A3A', fontWeight: 600 }}>
-                  {errors.username.message}
-                </p>
-              )}
             </div>
 
-            <div style={{ marginBottom: 18 }}>
-              <Field label="Contraseña" htmlFor="login-password">
+            <div className="mb-[18px]">
+              <Field label="Contraseña" htmlFor="login-password" error={errors.password?.message}>
                 <Input
                   id="login-password"
                   type="password"
@@ -106,30 +74,13 @@ export default function LoginPage() {
                   {...register('password', { required: 'Ingresá tu contraseña' })}
                 />
               </Field>
-              {errors.password && (
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#C85A3A', fontWeight: 600 }}>
-                  {errors.password.message}
-                </p>
-              )}
             </div>
 
             {errorMessage && (
-              <div
-                style={{
-                  background: '#C85A3A18',
-                  color: '#C85A3A',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  marginBottom: 14,
-                }}
-              >
-                {errorMessage}
-              </div>
+              <Alert style={{ marginBottom: 14 }}>{errorMessage}</Alert>
             )}
 
-            <Button type="submit" disabled={loginMutation.isPending} style={{ width: '100%' }}>
+            <Button type="submit" disabled={loginMutation.isPending} className="w-full">
               {loginMutation.isPending ? 'Ingresando…' : 'Iniciar sesión'}
             </Button>
           </form>

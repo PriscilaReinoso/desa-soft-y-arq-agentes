@@ -8,6 +8,7 @@ import Button from '../components/ui/Button'
 import DataTable, { type Column } from '../components/ui/DataTable'
 import Field from '../components/ui/Field'
 import Input from '../components/ui/Input'
+import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import Select from '../components/ui/Select'
 
@@ -23,24 +24,24 @@ const listColumns: Column<Presupuesto>[] = [
     key: 'id',
     header: 'N° Pres.',
     mono: true,
-    render: (b) => <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{b.id}</span>,
+    render: (b) => <span className="text-primary font-semibold">{b.id}</span>,
   },
-  { key: 'client', header: 'Cliente', render: (b) => <span style={{ fontWeight: 600 }}>{b.client}</span> },
+  { key: 'client', header: 'Cliente', render: (b) => <span className="font-semibold">{b.client}</span> },
   {
     key: 'date',
     header: 'Fecha',
-    render: (b) => <span style={{ color: 'var(--muted-foreground)' }}>{b.date}</span>,
+    render: (b) => <span className="text-muted-foreground">{b.date}</span>,
   },
   {
     key: 'expiry',
     header: 'Vence',
     render: (b) => (
       <span
-        style={{
-          fontSize: 12,
-          color: b.status === 'Vencido' ? '#C85A3A' : 'var(--muted-foreground)',
-          fontWeight: b.status === 'Vencido' ? 700 : 400,
-        }}
+        className={
+          b.status === 'Vencido'
+            ? 'text-xs text-danger font-bold'
+            : 'text-xs text-muted-foreground font-normal'
+        }
       >
         {b.expiry}
       </span>
@@ -49,13 +50,13 @@ const listColumns: Column<Presupuesto>[] = [
   {
     key: 'items',
     header: 'Artículos',
-    render: (b) => <span style={{ color: 'var(--muted-foreground)' }}>{b.items}</span>,
+    render: (b) => <span className="text-muted-foreground">{b.items}</span>,
   },
   {
     key: 'total',
     header: 'Total',
     mono: true,
-    render: (b) => <span style={{ fontSize: 14, fontWeight: 800 }}>{formatCurrency(b.total)}</span>,
+    render: (b) => <span className="text-[14px] font-extrabold">{formatCurrency(b.total)}</span>,
   },
   {
     key: 'status',
@@ -66,11 +67,11 @@ const listColumns: Column<Presupuesto>[] = [
     key: 'actions',
     header: '',
     render: () => (
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         <Button variant="outline" size="xs" type="button">
           Ver
         </Button>
-        <Button variant="outline" size="xs" type="button" style={{ color: 'var(--accent)' }}>
+        <Button variant="outline" size="xs" type="button" className="text-accent">
           PDF
         </Button>
       </div>
@@ -101,30 +102,22 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
   const onSave = () => onBack()
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 820 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+    <PageContainer maxWidth={820}>
+      <div className="flex items-center gap-3 mb-6">
         <button
           type="button"
           onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--muted-foreground)', padding: 0 }}
+          className="bg-transparent border-none cursor-pointer text-xl text-muted-foreground p-0"
         >
           ←
         </button>
-        <h1 style={{ fontWeight: 800, fontSize: 24, margin: 0 }}>Nuevo presupuesto</h1>
+        <h1 className="font-extrabold text-2xl m-0">Nuevo presupuesto</h1>
       </div>
 
       <form onSubmit={handleSubmit(onSave)}>
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+        <div className="bg-card border border-border rounded-xl overflow-hidden mb-4">
           {/* Budget header */}
-          <div
-            style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid var(--border)',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 16,
-            }}
-          >
+          <div className="px-6 py-5 border-b border-border grid grid-cols-2 gap-4">
             <Field label="CLIENTE" htmlFor="budget-cliente">
               <Input id="budget-cliente" placeholder="Nombre del cliente" {...register('cliente')} />
             </Field>
@@ -148,13 +141,13 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
           </div>
 
           {/* Line items */}
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: 'var(--muted)' }}>
+              <tr className="bg-muted">
                 {['Código', 'Artículo', 'Cantidad', 'Unidad', 'Precio unit.', 'Subtotal', ''].map((h) => (
                   <th
                     key={h}
-                    style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}
+                    className="px-4 py-2.5 text-left text-[11px] font-bold tracking-[0.06em] uppercase text-muted-foreground"
                   >
                     {h}
                   </th>
@@ -163,63 +156,43 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.code} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--primary)' }}>
+                <tr key={item.code} className="border-t border-border">
+                  <td className="px-4 py-3 font-mono text-xs text-primary">
                     {item.code}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600 }}>{item.name}</td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td className="px-4 py-3 text-[13px] font-semibold">{item.name}</td>
+                  <td className="px-4 py-3">
                     <input
                       type="number"
                       min={0}
                       value={item.qty}
                       onChange={(e) => updateQty(item.code, Number(e.target.value))}
-                      style={{
-                        width: 60,
-                        padding: '5px 8px',
-                        border: '1px solid var(--border)',
-                        borderRadius: 6,
-                        fontFamily: 'inherit',
-                        fontSize: 13,
-                        outline: 'none',
-                        textAlign: 'center',
-                        background: 'var(--background)',
-                      }}
+                      className="w-[60px] px-2 py-[5px] border border-border rounded-md text-[13px] outline-none text-center bg-background"
                     />
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--muted-foreground)' }}>{item.unit}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{item.unit}</td>
+                  <td className="px-4 py-3 text-[13px] font-mono">
                     {formatCurrency(item.price)}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                  <td className="px-4 py-3 text-[13px] font-bold font-mono">
                     {formatCurrency(item.subtotal)}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td className="px-4 py-3">
                     <button
                       type="button"
                       onClick={() => removeItem(item.code)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C85A3A', fontSize: 16 }}
+                      className="bg-transparent border-none cursor-pointer text-danger text-base"
                     >
                       ✕
                     </button>
                   </td>
                 </tr>
               ))}
-              <tr style={{ borderTop: '1px solid var(--border)' }}>
-                <td colSpan={7} style={{ padding: '12px 16px' }}>
+              <tr className="border-t border-border">
+                <td colSpan={7} className="px-4 py-3">
                   <button
                     type="button"
-                    style={{
-                      background: 'none',
-                      border: '1.5px dashed var(--border)',
-                      borderRadius: 8,
-                      padding: '7px 16px',
-                      fontFamily: 'inherit',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      color: 'var(--primary)',
-                    }}
+                    className="bg-transparent border-[1.5px] border-dashed border-border rounded-lg px-4 py-[7px] text-xs font-semibold cursor-pointer text-primary"
                   >
                     + Agregar artículo
                   </button>
@@ -229,20 +202,20 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
           </table>
 
           {/* Totals */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ width: 220 }}>
+          <div className="px-6 py-4 border-t border-border flex justify-end">
+            <div className="w-[220px]">
               {[
                 { label: 'Subtotal', value: formatCurrency(subtotal) },
                 { label: 'IVA 21%', value: formatCurrency(iva) },
               ].map((row) => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>{row.value}</span>
+                <div key={row.label} className="flex justify-between mb-1.5">
+                  <span className="text-[13px] text-muted-foreground">{row.label}</span>
+                  <span className="text-[13px] font-mono">{row.value}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid var(--foreground)', paddingTop: 8, marginTop: 6 }}>
-                <span style={{ fontWeight: 800, fontSize: 15 }}>Total</span>
-                <span style={{ fontWeight: 800, fontSize: 18, fontFamily: "'JetBrains Mono', monospace", color: 'var(--primary)' }}>
+              <div className="flex justify-between border-t-[1.5px] border-foreground pt-2 mt-1.5">
+                <span className="font-extrabold text-[15px]">Total</span>
+                <span className="font-extrabold text-lg font-mono text-primary">
                   {formatCurrency(total)}
                 </span>
               </div>
@@ -250,7 +223,7 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="flex gap-2.5">
           <Button type="submit">Guardar borrador</Button>
           <Button type="button" variant="accent">
             Exportar PDF
@@ -260,7 +233,7 @@ function BudgetCreate({ onBack }: { onBack: () => void }) {
           </Button>
         </div>
       </form>
-    </div>
+    </PageContainer>
   )
 }
 
@@ -270,7 +243,7 @@ export default function BudgetsPage() {
   if (view === 'new') return <BudgetCreate onBack={() => setView('list')} />
 
   return (
-    <div style={{ padding: '32px 36px' }}>
+    <PageContainer>
       <PageHeader
         title="Presupuestos"
         subtitle="Preventas y presupuestos exportables a PDF"
@@ -278,6 +251,6 @@ export default function BudgetsPage() {
       />
 
       <DataTable columns={listColumns} rows={presupuestos} rowKey={(b) => b.id} cellPadding="13px 16px" />
-    </div>
+    </PageContainer>
   )
 }

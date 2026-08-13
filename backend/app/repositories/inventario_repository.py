@@ -1,9 +1,19 @@
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.models.articulo import Articulo
+from app.models.espacio import Espacio
 from app.models.inventario import Inventario
+
+
+def _relaciones_cargadas():
+    return (
+        selectinload(Inventario.articulo).selectinload(Articulo.categoria),
+        selectinload(Inventario.medida),
+        selectinload(Inventario.espacio).selectinload(Espacio.deposito),
+    )
 
 
 class InventarioRepository:
@@ -13,6 +23,7 @@ class InventarioRepository:
     def list(self, skip: int = 0, limit: int = 100) -> list[Inventario]:
         stmt = (
             select(Inventario)
+            .options(*_relaciones_cargadas())
             .where(Inventario.deleted_at.is_(None))
             .order_by(Inventario.articulo_id)
             .offset(skip)
@@ -21,7 +32,11 @@ class InventarioRepository:
         return list(self.db.scalars(stmt).all())
 
     def get(self, inventario_id: uuid.UUID) -> Inventario | None:
-        stmt = select(Inventario).where(Inventario.id == inventario_id, Inventario.deleted_at.is_(None))
+        stmt = (
+            select(Inventario)
+            .options(*_relaciones_cargadas())
+            .where(Inventario.id == inventario_id, Inventario.deleted_at.is_(None))
+        )
         return self.db.scalar(stmt)
 
     def get_by_combinacion(self, articulo_id: uuid.UUID, medida_id: uuid.UUID) -> Inventario | None:
