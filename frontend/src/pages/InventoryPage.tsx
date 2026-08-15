@@ -1,23 +1,32 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
+import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/http'
-import { useAltaInventario, useInventarios } from '../hooks/useInventarios'
-import { useArticulos } from '../hooks/useArticulos'
+import {
+  useActualizarInventario,
+  useAltaInventario,
+  useEliminarInventario,
+  useInventarios,
+} from '../hooks/useInventarios'
+import { useActualizarArticulo, useArticulos } from '../hooks/useArticulos'
 import { useCategorias } from '../hooks/useCategorias'
 import { useDepositos } from '../hooks/useDepositos'
 import { useEspacios } from '../hooks/useEspacios'
 import { useMedidas } from '../hooks/useMedidas'
 import { formatCurrency } from '../lib/format'
-import type { InventarioAltaPayload, InventarioRow } from '../types/domain'
+import type { InventarioAltaPayload, InventarioOut, InventarioRow } from '../types/domain'
 import Alert from '../components/ui/Alert'
+import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import DataTable, { type Column } from '../components/ui/DataTable'
 import EmptyState from '../components/ui/EmptyState'
 import Field from '../components/ui/Field'
 import FilterPills from '../components/ui/FilterPills'
 import Input from '../components/ui/Input'
+import Modal from '../components/ui/Modal'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
+import SearchableSelect from '../components/ui/SearchableSelect'
 import SearchInput from '../components/ui/SearchInput'
 import Select from '../components/ui/Select'
 
@@ -33,7 +42,23 @@ type AltaFormValues = {
   fila: number
   columna: number
   stock: number
+  minimo_stock: number
   precio_venta: number
+  medida_venta_id: string
+}
+
+type EditarFormValues = {
+  articulo_nombre: string
+  articulo_descripcion: string
+  articulo_categoria_id: string
+  medida_id: string
+  espacio_id: string
+  fila: number
+  columna: number
+  stock: number
+  minimo_stock: number
+  precio_venta: number
+  medida_venta_id: string
 }
 
 const columns: Column<InventarioRow>[] = [
@@ -56,7 +81,23 @@ const columns: Column<InventarioRow>[] = [
     key: 'stock',
     header: 'Stock',
     mono: true,
-    render: (r) => <span className="font-bold">{r.stock}</span>,
+    render: (r) =>
+      r.bajo_minimo ? (
+        <div className="flex items-center gap-2">
+          <span className="font-bold" style={{ color: '#C85A3A' }}>
+            {r.stock}
+          </span>
+          <Badge color="#C85A3A">Bajo stock</Badge>
+        </div>
+      ) : (
+        <span className="font-bold">{r.stock}</span>
+      ),
+  },
+  {
+    key: 'minimo_stock',
+    header: 'Mínimo',
+    mono: true,
+    render: (r) => <span className="text-muted-foreground">{r.minimo_stock}</span>,
   },
   {
     key: 'ubicacion',
@@ -75,29 +116,45 @@ const columns: Column<InventarioRow>[] = [
     key: 'precio_venta',
     header: 'P. Venta',
     mono: true,
-    render: (r) => <span className="font-bold">{formatCurrency(r.precio_venta)}</span>,
+    render: (r) => (
+      <span className="font-bold">
+        {formatCurrency(r.precio_venta)}
+        {r.medida_venta ? ` / ${r.medida_venta}` : ''}
+      </span>
+    ),
   },
 ]
 
 export default function InventoryPage() {
+  const { usuario } = useAuth()
+  const isAdmin = usuario?.rol === 'ADMIN'
+
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('Todos')
   const [showForm, setShowForm] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<InventarioOut | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [articuloMode, setArticuloMode] = useState<'existente' | 'nuevo'>('existente')
   const [medidaMode, setMedidaMode] = useState<'existente' | 'nuevo'>('existente')
   const [espacioMode, setEspacioMode] = useState<'ninguno' | 'existente' | 'nuevo'>('ninguno')
 
   const inventariosQuery = useInventarios()
   const altaMutation = useAltaInventario()
+  const actualizarMutation = useActualizarInventario()
+  const actualizarArticuloMutation = useActualizarArticulo()
+  const eliminarMutation = useEliminarInventario()
   const articulosQuery = useArticulos({ enabled: showForm })
-  const categoriasQuery = useCategorias({ enabled: showForm })
-  const medidasQuery = useMedidas({ enabled: showForm })
-  const depositosQuery = useDepositos({ enabled: showForm })
-  const espaciosQuery = useEspacios({ enabled: showForm })
+  const categoriasQuery = useCategorias({ enabled: showForm || modalOpen })
+  const medidasQuery = useMedidas({ enabled: showForm || modalOpen })
+  const depositosQuery = useDepositos({ enabled: showForm || modalOpen })
+  const espaciosQuery = useEspacios({ enabled: showForm || modalOpen })
 
   const {
     register,
     handleSubmit,
+    control,
     reset,
     formState: { errors },
   } = useForm<AltaFormValues>({
@@ -113,9 +170,42 @@ export default function InventoryPage() {
       fila: 0,
       columna: 0,
       stock: 0,
+      minimo_stock: 0,
       precio_venta: 0,
+      medida_venta_id: '',
     },
   })
+
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    control: controlEdit,
+    reset: resetEdit,
+    formState: { errors: editErrors },
+  } = useForm<EditarFormValues>({
+    defaultValues: {
+      articulo_nombre: '',
+      articulo_descripcion: '',
+      articulo_categoria_id: '',
+      medida_id: '',
+      espacio_id: '',
+      fila: 0,
+      columna: 0,
+      stock: 0,
+      minimo_stock: 0,
+      precio_venta: 0,
+      medida_venta_id: '',
+    },
+  })
+
+  const medidaOptions = useMemo(
+    () =>
+      (medidasQuery.data ?? []).map((m) => ({
+        value: m.id,
+        label: `${m.medida} ${m.unidad_medida}`.trim(),
+      })),
+    [medidasQuery.data],
+  )
 
   const rows = useMemo<InventarioRow[]>(
     () =>
@@ -123,13 +213,18 @@ export default function InventoryPage() {
         id: inv.id,
         categoria: inv.articulo.categoria.nombre,
         articulo: inv.articulo.nombre,
-        medida: `${inv.medida.unidad_medida} ${inv.medida.medida}`.trim(),
+        medida: `${inv.medida.medida} ${inv.medida.unidad_medida}`.trim(),
         deposito: inv.espacio?.deposito.nombre ?? null,
         espacio: inv.espacio ? inv.espacio.tipo ?? inv.espacio.descripcion ?? '' : null,
-        fila: inv.fila,
-        columna: inv.columna,
-        stock: inv.stock,
-        precio_venta: Number(inv.precio_venta),
+      fila: inv.fila,
+      columna: inv.columna,
+      stock: inv.stock,
+      minimo_stock: inv.minimo_stock,
+      medida_venta: inv.medida_venta
+        ? `${inv.medida_venta.medida} ${inv.medida_venta.unidad_medida}`.trim()
+        : null,
+      bajo_minimo: inv.minimo_stock > 0 && inv.stock < inv.minimo_stock,
+      precio_venta: Number(inv.precio_venta),
       })),
     [inventariosQuery.data],
   )
@@ -159,6 +254,77 @@ export default function InventoryPage() {
     reset()
   }
 
+  const openEdit = (row: InventarioRow) => {
+    const inv = inventariosQuery.data?.find((i) => i.id === row.id)
+    if (!inv) return
+    setEditing(inv)
+    setSaveError(null)
+    setSubmitting(false)
+    resetEdit({
+      articulo_nombre: inv.articulo.nombre,
+      articulo_descripcion: inv.articulo.descripcion ?? '',
+      articulo_categoria_id: inv.articulo.categoria.id,
+      medida_id: inv.medida.id,
+      espacio_id: inv.espacio?.id ?? '',
+      fila: inv.fila ?? 0,
+      columna: inv.columna ?? 0,
+      stock: inv.stock,
+      minimo_stock: inv.minimo_stock,
+      precio_venta: Number(inv.precio_venta),
+      medida_venta_id: inv.medida_venta?.id ?? '',
+    })
+    setModalOpen(true)
+  }
+
+  const closeEdit = () => {
+    setModalOpen(false)
+    setEditing(null)
+    resetEdit()
+  }
+
+  const onEditSubmit = async (values: EditarFormValues) => {
+    if (!editing) return
+    setSubmitting(true)
+    setSaveError(null)
+    try {
+      const articleChanged =
+        values.articulo_nombre !== editing.articulo.nombre ||
+        (values.articulo_descripcion ?? '') !== (editing.articulo.descripcion ?? '') ||
+        values.articulo_categoria_id !== editing.articulo.categoria_id
+      if (articleChanged) {
+        await actualizarArticuloMutation.mutateAsync({
+          id: editing.articulo.id,
+          data: {
+            nombre: values.articulo_nombre,
+            descripcion: values.articulo_descripcion || null,
+            categoria_id: values.articulo_categoria_id,
+          },
+        })
+      }
+      const payload = {
+        medida_id: values.medida_id || undefined,
+        espacio_id: values.espacio_id || null,
+        fila: Number.isFinite(values.fila) ? values.fila : null,
+        columna: Number.isFinite(values.columna) ? values.columna : null,
+        stock: Number(values.stock),
+        minimo_stock: Number(values.minimo_stock),
+        precio_venta: Number(values.precio_venta),
+        medida_venta_id: values.medida_venta_id || null,
+      }
+      await actualizarMutation.mutateAsync({ id: editing.id, data: payload })
+      closeEdit()
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : String(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleEliminar = (row: InventarioRow) => {
+    if (!window.confirm(`¿Eliminar "${row.articulo}" del inventario?`)) return
+    eliminarMutation.mutate(row.id)
+  }
+
   const onSubmit = (values: AltaFormValues) => {
     const payload: InventarioAltaPayload = {
       articulo:
@@ -178,7 +344,9 @@ export default function InventoryPage() {
       fila: values.fila || null,
       columna: values.columna || null,
       stock: Number(values.stock),
+      minimo_stock: Number(values.minimo_stock),
       precio_venta: Number(values.precio_venta),
+      medida_venta_id: values.medida_venta_id || null,
     }
     altaMutation.mutate(payload, {
       onSuccess: () => closeForm(),
@@ -197,6 +365,20 @@ export default function InventoryPage() {
     return altaMutation.error instanceof ApiError
       ? altaMutation.error.message
       : altaMutation.error.message
+  })()
+
+  const actualizarError = (() => {
+    if (!actualizarMutation.error) return null
+    return actualizarMutation.error instanceof ApiError
+      ? actualizarMutation.error.message
+      : actualizarMutation.error.message
+  })()
+
+  const eliminarError = (() => {
+    if (!eliminarMutation.error) return null
+    return eliminarMutation.error instanceof ApiError
+      ? eliminarMutation.error.message
+      : eliminarMutation.error.message
   })()
 
   const maestroError = (() => {
@@ -222,6 +404,49 @@ export default function InventoryPage() {
       </PageContainer>
     )
   }
+
+  const tableColumns: Column<InventarioRow>[] = [
+    ...columns,
+    {
+      key: 'acciones',
+      header: '',
+      align: 'right',
+      nowrap: true,
+      render: (r) => (
+        <div className="flex justify-end gap-1">
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Editar ${r.articulo}`}
+              onClick={() => openEdit(r)}
+            >
+              ✎
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            title="Disponibilidad futura"
+            aria-label={`Añadir a preventa ${r.articulo}`}
+          >
+            🛒
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Eliminar ${r.articulo}`}
+              onClick={() => handleEliminar(r)}
+            >
+              🗑
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <PageContainer>
@@ -320,18 +545,23 @@ export default function InventoryPage() {
               <div className={`grid gap-3.5 mt-2.5 ${medidaMode === 'existente' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {medidaMode === 'existente' ? (
                   <Field label="Medida" error={errors.medida_id?.message}>
-                    <Select
-                      {...register('medida_id', {
-                        validate: (v) => (medidaMode === 'existente' && !v ? 'Seleccioná una medida' : true),
-                      })}
-                    >
-                      <option value="">Seleccionar…</option>
-                      {(medidasQuery.data ?? []).map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.unidad_medida} {m.medida}
-                        </option>
-                      ))}
-                    </Select>
+                    <Controller
+                      control={control}
+                      name="medida_id"
+                      rules={{
+                        validate: (v) =>
+                          medidaMode === 'existente' && !v ? 'Seleccioná una medida' : true,
+                      }}
+                      render={({ field }) => (
+                        <SearchableSelect
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          options={medidaOptions}
+                          placeholder="Buscar medida…"
+                        />
+                      )}
+                    />
                   </Field>
                 ) : (
                   <>
@@ -435,20 +665,47 @@ export default function InventoryPage() {
                 })}
               />
             </Field>
-            <div className="col-span-full">
-              <Field label="Precio de venta ($)" error={errors.precio_venta?.message}>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  placeholder="0.00"
-                  {...register('precio_venta', {
-                    valueAsNumber: true,
-                    validate: (v) => (Number.isFinite(v) && v >= 0 ? true : 'Precio de venta requerido'),
-                  })}
-                />
-              </Field>
-            </div>
+            <Field label="Stock mínimo" error={errors.minimo_stock?.message}>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                {...register('minimo_stock', {
+                  valueAsNumber: true,
+                  validate: (v) =>
+                    !Number.isFinite(v) || v < 0 ? 'Debe ser mayor o igual a 0' : true,
+                })}
+              />
+            </Field>
+            <Field label="Precio de venta ($)" error={errors.precio_venta?.message}>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                {...register('precio_venta', {
+                  valueAsNumber: true,
+                  validate: (v) => (Number.isFinite(v) && v >= 0 ? true : 'Precio de venta requerido'),
+                })}
+              />
+            </Field>
+            <Field label="Medida de venta">
+              <Controller
+                control={control}
+                name="medida_venta_id"
+                render={({ field }) => (
+                  <SearchableSelect
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={medidaOptions}
+                    placeholder="Buscar medida…"
+                    optional
+                    noneLabel="Sin medida"
+                  />
+                )}
+              />
+            </Field>
           </div>
 
           {altaError && (
@@ -475,7 +732,166 @@ export default function InventoryPage() {
         <FilterPills options={categoryOptions} active={cat} onChange={setCat} />
       </div>
 
-      <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+      {eliminarError && <Alert style={{ marginBottom: 16 }}>{eliminarError}</Alert>}
+
+      <DataTable columns={tableColumns} rows={filtered} rowKey={(r) => r.id} />
+
+      <Modal open={modalOpen} onClose={closeEdit} title="Editar artículo">
+        {editing && (
+          <form onSubmit={handleEditSubmit(onEditSubmit)} noValidate>
+            <div className="rounded-lg border border-border p-3.5 mb-4">
+              <div className="text-[13px] font-bold mb-2">Artículo</div>
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="col-span-full">
+                  <Field label="Nombre" error={editErrors.articulo_nombre?.message}>
+                    <Input {...registerEdit('articulo_nombre', { required: 'Ingresá un nombre' })} />
+                  </Field>
+                </div>
+                <div className="col-span-full">
+                  <Field label="Descripción">
+                    <Input
+                      placeholder="Descripción opcional"
+                      {...registerEdit('articulo_descripcion')}
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-full">
+                  <Field label="Categoría" error={editErrors.articulo_categoria_id?.message}>
+                    <Select
+                      {...registerEdit('articulo_categoria_id', {
+                        required: 'Seleccioná una categoría',
+                      })}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {(categoriasQuery.data ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="col-span-full">
+                <Field label="Medida" error={editErrors.medida_id?.message}>
+                  <Controller
+                    control={controlEdit}
+                    name="medida_id"
+                    rules={{ required: 'Seleccioná una medida' }}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        options={medidaOptions}
+                        placeholder="Buscar medida…"
+                      />
+                    )}
+                  />
+                </Field>
+              </div>
+              <div className="col-span-full">
+                <Field label="Espacio">
+                  <Select {...registerEdit('espacio_id')}>
+                    <option value="">Sin espacio</option>
+                    {(espaciosQuery.data ?? []).map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.tipo ?? e.descripcion ?? 'Espacio'}
+                        {depositoName.get(e.deposito_id) ? ` — ${depositoName.get(e.deposito_id)}` : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <Field label="Fila">
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...registerEdit('fila', { valueAsNumber: true })}
+                />
+              </Field>
+              <Field label="Columna">
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...registerEdit('columna', { valueAsNumber: true })}
+                />
+              </Field>
+              <Field label="Stock" error={editErrors.stock?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...registerEdit('stock', {
+                    valueAsNumber: true,
+                    validate: (v) => (Number.isFinite(v) && v >= 0 ? true : 'Stock requerido'),
+                  })}
+                />
+              </Field>
+              <Field label="Stock mínimo" error={editErrors.minimo_stock?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...registerEdit('minimo_stock', {
+                    valueAsNumber: true,
+                    validate: (v) =>
+                      !Number.isFinite(v) || v < 0 ? 'Debe ser mayor o igual a 0' : true,
+                  })}
+                />
+              </Field>
+              <Field label="Precio de venta ($)" error={editErrors.precio_venta?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  {...registerEdit('precio_venta', {
+                    valueAsNumber: true,
+                    validate: (v) =>
+                      Number.isFinite(v) && v >= 0 ? true : 'Precio de venta requerido',
+                  })}
+                />
+              </Field>
+              <Field label="Medida de venta">
+                <Controller
+                  control={controlEdit}
+                  name="medida_venta_id"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      options={medidaOptions}
+                      placeholder="Buscar medida…"
+                      optional
+                      noneLabel="Sin medida"
+                    />
+                  )}
+                />
+              </Field>
+            </div>
+
+            {(saveError ?? actualizarError) && (
+              <Alert style={{ marginTop: 14 }}>{saveError ?? actualizarError}</Alert>
+            )}
+
+            <div className="flex gap-2.5 mt-5 justify-end">
+              <Button type="button" variant="muted" size="sm" onClick={closeEdit}>
+                Cancelar
+              </Button>
+              <Button type="submit" size="sm" disabled={submitting}>
+                {submitting ? 'Guardando…' : 'Guardar'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </PageContainer>
   )
 }

@@ -14,6 +14,7 @@ class Inventario(Base):
     __table_args__ = (
         UniqueConstraint("articulo_id", "medida_id", name="uq_inventario_articulo_medida"),
         CheckConstraint("stock >= 0", name="ck_inventario_stock_positivo"),
+        CheckConstraint("minimo_stock >= 0", name="ck_inventario_minimo_stock_positivo"),
         CheckConstraint("precio_venta >= 0", name="ck_inventario_precio_positivo"),
     )
 
@@ -24,12 +25,15 @@ class Inventario(Base):
     fila: Mapped[int | None] = mapped_column(Integer, nullable=True)
     columna: Mapped[int | None] = mapped_column(Integer, nullable=True)
     stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    minimo_stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     precio_venta: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    medida_venta_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("medida.id"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     articulo: Mapped["Articulo"] = relationship(back_populates="inventarios")  # type: ignore[name-defined]
-    medida: Mapped["Medida"] = relationship(back_populates="inventarios")  # type: ignore[name-defined]
+    medida: Mapped["Medida"] = relationship(foreign_keys=[medida_id], back_populates="inventarios")  # type: ignore[name-defined]
+    medida_venta: Mapped["Medida | None"] = relationship(foreign_keys=[medida_venta_id], back_populates="inventarios_venta")  # type: ignore[name-defined]
     espacio: Mapped["Espacio"] = relationship(back_populates="inventarios")  # type: ignore[name-defined]

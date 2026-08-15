@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.espacio import EspacioOut
+
 
 class DepositoCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=100)
@@ -23,3 +25,7 @@ class DepositoOut(BaseModel):
     descripcion: str | None
     direccion: str | None
     cantidad_espacios: int
+
+
+class DepositoDetalleOut(DepositoOut):
+    espacios: list[EspacioOut] = []

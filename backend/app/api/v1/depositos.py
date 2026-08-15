@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_usuario, require_roles
 from app.models.usuario import Usuario
-from app.schemas.deposito import DepositoCreate, DepositoOut, DepositoUpdate
+from app.schemas.deposito import DepositoCreate, DepositoDetalleOut, DepositoOut, DepositoUpdate
 from app.services.deposito_service import DepositoService
 
 router = APIRouter(
@@ -30,9 +30,11 @@ def create_deposito(
     return DepositoService(db).create(data)
 
 
-@router.get("/{deposito_id}", response_model=DepositoOut)
+@router.get("/{deposito_id}", response_model=DepositoDetalleOut)
 def get_deposito(deposito_id: uuid.UUID, db: Session = Depends(get_db)):
-    return DepositoService(db).get(deposito_id)
+    deposito = DepositoService(db).get(deposito_id)
+    deposito.espacios = [e for e in deposito.espacios if e.deleted_at is None]
+    return deposito
 
 
 @router.put("/{deposito_id}", response_model=DepositoOut)

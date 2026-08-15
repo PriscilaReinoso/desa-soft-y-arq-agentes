@@ -262,3 +262,273 @@ class TestInventarioCrud:
         assert r.status_code == 204
         assert client.get(f"/api/v1/inventarios/{creado['id']}", headers=admin_headers).status_code == 404
         assert client.get("/api/v1/inventarios", headers=admin_headers).json() == []
+
+    def test_crear_minimo_stock_default(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        r = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"])
+        assert r.status_code == 201, r.text
+        assert r.json()["minimo_stock"] == 0
+
+    def test_crear_minimo_stock_explicito(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        r = client.post(
+            "/api/v1/inventarios",
+            json={
+                "articulo_id": articulo["id"],
+                "medida_id": medida["id"],
+                "precio_venta": 10,
+                "minimo_stock": 5,
+            },
+            headers=admin_headers,
+        )
+        assert r.status_code == 201, r.text
+        assert r.json()["minimo_stock"] == 5
+
+    def test_crear_minimo_stock_negativo(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        r = client.post(
+            "/api/v1/inventarios",
+            json={
+                "articulo_id": articulo["id"],
+                "medida_id": medida["id"],
+                "precio_venta": 10,
+                "minimo_stock": -1,
+            },
+            headers=admin_headers,
+        )
+        assert r.status_code == 422
+
+    def test_actualizar_minimo_stock(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"]).json()
+        r = client.put(f"/api/v1/inventarios/{creado['id']}", json={"minimo_stock": 7}, headers=admin_headers)
+        assert r.status_code == 200, r.text
+        assert r.json()["minimo_stock"] == 7
+
+    def test_actualizar_minimo_stock_negativo(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"]).json()
+        r = client.put(f"/api/v1/inventarios/{creado['id']}", json={"minimo_stock": -2}, headers=admin_headers)
+        assert r.status_code == 422
+
+    def test_crear_con_medida_venta(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        medida_venta = self._crear_medida(client, admin_headers, unidad="metro", medida="metro")
+        r = client.post(
+            "/api/v1/inventarios",
+            json={
+                "articulo_id": articulo["id"],
+                "medida_id": medida["id"],
+                "precio_venta": 10,
+                "medida_venta_id": medida_venta["id"],
+            },
+            headers=admin_headers,
+        )
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["medida"]["id"] == medida["id"]
+        assert body["medida_venta"]["id"] == medida_venta["id"]
+        assert body["medida_venta"]["unidad_medida"] == "metro"
+
+    def test_crear_sin_medida_venta(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        r = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"])
+        assert r.status_code == 201, r.text
+        assert r.json()["medida_venta"] is None
+
+    def test_crear_medida_venta_inexistente(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        r = client.post(
+            "/api/v1/inventarios",
+            json={
+                "articulo_id": articulo["id"],
+                "medida_id": medida["id"],
+                "precio_venta": 10,
+                "medida_venta_id": "00000000-0000-0000-0000-000000000000",
+            },
+            headers=admin_headers,
+        )
+        assert r.status_code == 400
+
+    def test_actualizar_medida_venta_y_limpiar(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        medida_venta = self._crear_medida(client, admin_headers, unidad="metro", medida="metro")
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"]).json()
+        r = client.put(
+            f"/api/v1/inventarios/{creado['id']}",
+            json={"medida_venta_id": medida_venta["id"]},
+            headers=admin_headers,
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["medida_venta"]["id"] == medida_venta["id"]
+        r = client.put(
+            f"/api/v1/inventarios/{creado['id']}",
+            json={"medida_venta_id": None},
+            headers=admin_headers,
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["medida_venta"] is None
+
+    def test_actualizar_medida_del_item(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida1 = self._crear_medida(client, admin_headers, unidad="unidad", medida="unidad")
+        medida2 = self._crear_medida(client, admin_headers, unidad="metro", medida="2")
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida1["id"]).json()
+        r = client.put(
+            f"/api/v1/inventarios/{creado['id']}",
+            json={"medida_id": medida2["id"]},
+            headers=admin_headers,
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["medida"]["id"] == medida2["id"]
+
+    def test_actualizar_medida_inexistente(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"]).json()
+        r = client.put(
+            f"/api/v1/inventarios/{creado['id']}",
+            json={"medida_id": "00000000-0000-0000-0000-000000000000"},
+            headers=admin_headers,
+        )
+        assert r.status_code == 400
+
+    def test_actualizar_medida_nula(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        creado = self._crear_inventario(client, admin_headers, articulo["id"], medida["id"]).json()
+        r = client.put(
+            f"/api/v1/inventarios/{creado['id']}",
+            json={"medida_id": None},
+            headers=admin_headers,
+        )
+        assert r.status_code == 400
+
+    def test_actualizar_medida_conflicto_unicidad(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida1 = self._crear_medida(client, admin_headers, unidad="unidad", medida="unidad")
+        medida2 = self._crear_medida(client, admin_headers, unidad="metro", medida="2")
+        item1 = self._crear_inventario(client, admin_headers, articulo["id"], medida1["id"]).json()
+        self._crear_inventario(client, admin_headers, articulo["id"], medida2["id"])
+        r = client.put(
+            f"/api/v1/inventarios/{item1['id']}",
+            json={"medida_id": medida2["id"]},
+            headers=admin_headers,
+        )
+        assert r.status_code == 409
+
+    def _crear_inventario_minimo(self, client, headers, articulo_id, medida_id, stock, minimo, espacio_id=None, fila=None, columna=None):
+        payload = {
+            "articulo_id": articulo_id,
+            "medida_id": medida_id,
+            "precio_venta": 10,
+            "stock": stock,
+            "minimo_stock": minimo,
+        }
+        if espacio_id is not None:
+            payload.update({"espacio_id": espacio_id, "fila": fila, "columna": columna})
+        r = client.post("/api/v1/inventarios", json=payload, headers=headers)
+        assert r.status_code == 201, r.text
+        return r.json()
+
+    def test_bajo_minimo_lista_con_relaciones(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        medida_venta = self._crear_medida(client, admin_headers, unidad="metro", medida="metro")
+        dep = self._crear_deposito(client, admin_headers)
+        espacio = self._crear_espacio(client, admin_headers, dep["id"])
+        creado = client.post(
+            "/api/v1/inventarios",
+            json={
+                "articulo_id": articulo["id"],
+                "medida_id": medida["id"],
+                "espacio_id": espacio["id"],
+                "fila": 1,
+                "columna": 1,
+                "stock": 2,
+                "minimo_stock": 5,
+                "precio_venta": 10,
+                "medida_venta_id": medida_venta["id"],
+            },
+            headers=admin_headers,
+        )
+        assert creado.status_code == 201, creado.text
+        r = client.get("/api/v1/inventarios/bajo-minimo", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert len(body) == 1
+        item = body[0]
+        assert item["stock"] == 2
+        assert item["minimo_stock"] == 5
+        assert item["articulo"]["id"] == articulo["id"]
+        assert item["articulo"]["categoria"]["id"] == articulo["categoria_id"]
+        assert item["medida"]["id"] == medida["id"]
+        assert item["medida_venta"]["id"] == medida_venta["id"]
+        assert item["espacio"]["id"] == espacio["id"]
+        assert item["espacio"]["deposito"]["id"] == dep["id"]
+
+    def test_bajo_minimo_excluye_stock_mayor_o_igual(self, client, admin_headers):
+        articulo1 = self._crear_articulo(client, admin_headers, "Pinza")
+        medida = self._crear_medida(client, admin_headers)
+        dep = self._crear_deposito(client, admin_headers)
+        espacio = self._crear_espacio(client, admin_headers, dep["id"])
+        self._crear_inventario_minimo(
+            client, admin_headers, articulo1["id"], medida["id"], stock=5, minimo=5, espacio_id=espacio["id"], fila=1, columna=1
+        )
+        articulo2 = self._crear_articulo(client, admin_headers, "Tornillo")
+        medida2 = self._crear_medida(client, admin_headers, unidad="unidad2", medida="unidad2")
+        self._crear_inventario_minimo(client, admin_headers, articulo2["id"], medida2["id"], stock=0, minimo=5)
+        r = client.get("/api/v1/inventarios/bajo-minimo", headers=admin_headers)
+        assert r.status_code == 200
+        body = r.json()
+        assert len(body) == 1
+        assert body[0]["articulo"]["id"] == articulo2["id"]
+
+    def test_bajo_minimo_excluye_minimo_cero(self, client, admin_headers):
+        articulo1 = self._crear_articulo(client, admin_headers, "Pinza")
+        medida = self._crear_medida(client, admin_headers)
+        self._crear_inventario_minimo(client, admin_headers, articulo1["id"], medida["id"], stock=0, minimo=0)
+        articulo2 = self._crear_articulo(client, admin_headers, "Tornillo")
+        medida2 = self._crear_medida(client, admin_headers, unidad="unidad2", medida="unidad2")
+        self._crear_inventario_minimo(client, admin_headers, articulo2["id"], medida2["id"], stock=0, minimo=5)
+        r = client.get("/api/v1/inventarios/bajo-minimo", headers=admin_headers)
+        assert r.status_code == 200
+        body = r.json()
+        assert len(body) == 1
+        assert body[0]["articulo"]["id"] == articulo2["id"]
+
+    def test_bajo_minimo_excluye_eliminados(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        creado = self._crear_inventario_minimo(client, admin_headers, articulo["id"], medida["id"], stock=0, minimo=5)
+        r = client.delete(f"/api/v1/inventarios/{creado['id']}", headers=admin_headers)
+        assert r.status_code == 204
+        r = client.get("/api/v1/inventarios/bajo-minimo", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_bajo_minimo_lista_vacia(self, client, admin_headers):
+        r = client.get("/api/v1/inventarios/bajo-minimo", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_bajo_minimo_paginacion(self, client, admin_headers):
+        medida = self._crear_medida(client, admin_headers)
+        for i in range(3):
+            articulo = self._crear_articulo(client, admin_headers, f"Articulo{i}")
+            self._crear_inventario_minimo(client, admin_headers, articulo["id"], medida["id"], stock=0, minimo=3)
+        r = client.get("/api/v1/inventarios/bajo-minimo?skip=0&limit=2", headers=admin_headers)
+        assert r.status_code == 200
+        assert len(r.json()) == 2
+        r = client.get("/api/v1/inventarios/bajo-minimo?skip=2&limit=2", headers=admin_headers)
+        assert r.status_code == 200
+        assert len(r.json()) == 1

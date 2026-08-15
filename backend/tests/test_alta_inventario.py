@@ -203,3 +203,44 @@ class TestAltaInventario:
         assert client.get("/api/v1/articulos", headers=admin_headers).json() == []
         assert client.get("/api/v1/medidas", headers=admin_headers).json() == []
         assert client.get("/api/v1/inventarios", headers=admin_headers).json() == []
+
+    def test_alta_con_medida_venta_existente(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        medida_venta = self._crear_medida(client, admin_headers, unidad="metro", medida="metro")
+        payload = {
+            "articulo": {"id": articulo["id"]},
+            "medida": {"id": medida["id"]},
+            "precio_venta": 10,
+            "medida_venta_id": medida_venta["id"],
+        }
+        r = client.post("/api/v1/inventarios/alta", json=payload, headers=admin_headers)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["medida"]["id"] == medida["id"]
+        assert body["medida_venta"]["id"] == medida_venta["id"]
+        assert body["medida_venta"]["unidad_medida"] == "metro"
+
+    def test_alta_sin_medida_venta(self, client, admin_headers):
+        articulo = self._crear_articulo(client, admin_headers)
+        medida = self._crear_medida(client, admin_headers)
+        payload = {"articulo": {"id": articulo["id"]}, "medida": {"id": medida["id"]}, "precio_venta": 10}
+        r = client.post("/api/v1/inventarios/alta", json=payload, headers=admin_headers)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["medida_venta"] is None
+        assert body["minimo_stock"] == 0
+
+    def test_alta_medida_venta_inexistente_rollback(self, client, admin_headers):
+        cat = self._crear_categoria(client, admin_headers, "CAT_Martillo")
+        payload = {
+            "articulo": {"nombre": "Martillo", "categoria_id": cat["id"]},
+            "medida": {"unidad_medida": "unidad", "medida": "unidad"},
+            "precio_venta": 10,
+            "medida_venta_id": "00000000-0000-0000-0000-000000000000",
+        }
+        r = client.post("/api/v1/inventarios/alta", json=payload, headers=admin_headers)
+        assert r.status_code == 400
+        assert client.get("/api/v1/articulos", headers=admin_headers).json() == []
+        assert client.get("/api/v1/medidas", headers=admin_headers).json() == []
+        assert client.get("/api/v1/inventarios", headers=admin_headers).json() == []

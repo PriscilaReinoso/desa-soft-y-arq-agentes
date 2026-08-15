@@ -102,6 +102,8 @@ class AltaInventarioService:
         espacio = self._resolve_espacio(data.espacio)
         espacio_id = espacio.id if espacio is not None else None
         self._validate_ubicacion(espacio_id, data.fila, data.columna, data.stock)
+        if data.medida_venta_id is not None and self.medida_repository.get(data.medida_venta_id) is None:
+            raise BadRequestError(detail="La medida de venta no existe o está eliminada")
         if self.inventario_repository.get_by_combinacion(articulo.id, medida.id) is not None:
             raise ConflictError(detail="Ya existe un ítem de inventario para ese artículo y medida")
         inventario = Inventario(
@@ -111,6 +113,8 @@ class AltaInventarioService:
             fila=data.fila,
             columna=data.columna,
             stock=data.stock,
+            minimo_stock=data.minimo_stock,
             precio_venta=data.precio_venta,
+            medida_venta_id=data.medida_venta_id,
         )
         return self.inventario_repository.add_flush(inventario)

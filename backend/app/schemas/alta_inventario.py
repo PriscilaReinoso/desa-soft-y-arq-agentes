@@ -51,4 +51,6 @@ class InventarioAlta(BaseModel):
     fila: int | None = Field(default=None, ge=0)
     columna: int | None = Field(default=None, ge=0)
     stock: int = Field(default=0, ge=0)
+    minimo_stock: int = Field(default=0, ge=0)
     precio_venta: Decimal = Field(ge=0, decimal_places=2)
+    medida_venta_id: uuid.UUID | None = None

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -23,11 +24,27 @@ class Settings(BaseSettings):
 
     TEST_DATABASE_URL: str = "sqlite+pysqlite:///:memory:"
 
-    JWT_SECRET: str = "dev-secret-change-me"
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRES_MINUTES: int = 30
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def _validar_jwt_secret(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("JWT_SECRET debe tener al menos 32 caracteres")
+        prohibidos = {
+            "dev-secret-change-me",
+            "change-me",
+            "cambiar_secret_jwt",
+            "your-secret-key",
+            "secret",
+        }
+        if v in prohibidos:
+            raise ValueError("JWT_SECRET no puede ser un valor de ejemplo conocido")
+        return v
 
     @property
     def DATABASE_URL(self) -> str:

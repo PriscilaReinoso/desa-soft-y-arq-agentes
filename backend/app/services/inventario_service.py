@@ -27,6 +27,9 @@ class InventarioService:
     def list(self, skip: int = 0, limit: int = 100) -> list[Inventario]:
         return self.repository.list(skip=skip, limit=limit)
 
+    def list_bajo_minimo(self, skip: int = 0, limit: int = 100) -> list[Inventario]:
+        return self.repository.list_bajo_minimo(skip=skip, limit=limit)
+
     def get(self, inventario_id: uuid.UUID) -> Inventario:
         inventario = self.repository.get(inventario_id)
         if inventario is None:
@@ -38,6 +41,10 @@ class InventarioService:
             raise BadRequestError(detail="El artículo no existe o está eliminado")
         if self.medida_repository.get(medida_id) is None:
             raise BadRequestError(detail="La medida no existe o está eliminada")
+
+    def _validate_medida_venta(self, medida_venta_id) -> None:
+        if medida_venta_id is not None and self.medida_repository.get(medida_venta_id) is None:
+            raise BadRequestError(detail="La medida de venta no existe o está eliminada")
 
     def _validate_ubicacion(self, espacio_id, fila, columna, stock) -> None:
         if espacio_id is not None:
@@ -52,6 +59,7 @@ class InventarioService:
         self._validate_referencias(data.articulo_id, data.medida_id)
         if self.repository.get_by_combinacion(data.articulo_id, data.medida_id) is not None:
             raise ConflictError(detail="Ya existe un ítem de inventario para ese artículo y medida")
+        self._validate_medida_venta(data.medida_venta_id)
         self._validate_ubicacion(data.espacio_id, data.fila, data.columna, data.stock)
         inventario = Inventario(
             articulo_id=data.articulo_id,
@@ -60,7 +68,9 @@ class InventarioService:
             fila=data.fila,
             columna=data.columna,
             stock=data.stock,
+            minimo_stock=data.minimo_stock,
             precio_venta=data.precio_venta,
+            medida_venta_id=data.medida_venta_id,
         )
         return self.repository.add(inventario)
 
@@ -71,6 +81,18 @@ class InventarioService:
         columna = data.columna if "columna" in data.model_fields_set else inventario.columna
         stock = data.stock if "stock" in data.model_fields_set else inventario.stock
         self._validate_ubicacion(espacio_id, fila, columna, stock)
+        if "medida_id" in data.model_fields_set:
+            if data.medida_id is None:
+                raise BadRequestError(detail="La medida es obligatoria")
+            if self.medida_repository.get(data.medida_id) is None:
+                raise BadRequestError(detail="La medida no existe o está eliminada")
+            existing = self.repository.get_by_combinacion(inventario.articulo_id, data.medida_id)
+            if existing is not None and existing.id != inventario.id:
+                raise ConflictError(detail="Ya existe un ítem de inventario para ese artículo y medida")
+        if "medida_venta_id" in data.model_fields_set:
+            self._validate_medida_venta(data.medida_venta_id)
+        if "medida_id" in data.model_fields_set:
+            inventario.medida_id = data.medida_id
         if "espacio_id" in data.model_fields_set:
             inventario.espacio_id = data.espacio_id
         if "fila" in data.model_fields_set:
@@ -79,8 +101,12 @@ class InventarioService:
             inventario.columna = data.columna
         if "stock" in data.model_fields_set:
             inventario.stock = data.stock
+        if "minimo_stock" in data.model_fields_set:
+            inventario.minimo_stock = data.minimo_stock
         if "precio_venta" in data.model_fields_set:
             inventario.precio_venta = data.precio_venta
+        if "medida_venta_id" in data.model_fields_set:
+            inventario.medida_venta_id = data.medida_venta_id
         return self.repository.update(inventario)
 
     def delete(self, inventario_id: uuid.UUID) -> None:

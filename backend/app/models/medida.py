@@ -20,4 +20,5 @@ class Medida(Base):
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
-    inventarios: Mapped[list["Inventario"]] = relationship(back_populates="medida")  # type: ignore[name-defined]
+    inventarios: Mapped[list["Inventario"]] = relationship(foreign_keys="Inventario.medida_id", back_populates="medida")  # type: ignore[name-defined]
+    inventarios_venta: Mapped[list["Inventario"]] = relationship(foreign_keys="Inventario.medida_venta_id", back_populates="medida_venta")  # type: ignore[name-defined]

@@ -41,6 +41,11 @@ def create_inventario(
     return InventarioService(db).create(data)
 
 
+@router.get("/bajo-minimo", response_model=list[InventarioOut])
+def list_inventarios_bajo_minimo(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return InventarioService(db).list_bajo_minimo(skip=skip, limit=limit)
+
+
 @router.get("/{inventario_id}", response_model=InventarioOut)
 def get_inventario(inventario_id: uuid.UUID, db: Session = Depends(get_db)):
     return InventarioService(db).get(inventario_id)

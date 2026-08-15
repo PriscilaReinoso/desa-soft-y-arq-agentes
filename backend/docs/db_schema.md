@@ -157,6 +157,8 @@ Campos:
 - fila INTEGER
 - columna INTEGER
 - stock INTEGER DEFAULT 0
+- minimo_stock INTEGER DEFAULT 0
+- medida_venta_id UUID FK -> medida.id
 - precio_venta NUMERIC(12,2)
 
 Índices:

@@ -12,8 +12,8 @@ completo.
 ### Requirement: Alta compuesta de inventario
 
 El sistema SHALL exponer un endpoint de alta que reciba un artículo, una
-medida y, opcionalmente, un espacio junto con `stock`, `precio_venta`, `fila`
-y `columna`. Cada componente puede enviarse:
+medida y, opcionalmente, un espacio junto con `stock`, `precio_venta`, `fila`,
+`columna`, `minimo_stock` y `medida_venta_id`. Cada componente puede enviarse:
 
 - Existente, mediante su `id`.
 - Nuevo, sin `id`, con los datos para darlo de alta.
@@ -21,11 +21,15 @@ y `columna`. Cada componente puede enviarse:
 Reglas:
 
 - La combinación de artículo + medida debe ser única.
+- `minimo_stock` tiene default 0 y debe ser `>= 0`.
+- `medida_venta_id` es opcional y, si se envía, debe referenciar una medida
+  existente y no eliminada; no se crea una medida de venta nueva.
 - Si no se envían `stock` ni espacio, el ítem se crea con `espacio_id = null`
   y `stock = 0`; `precio_venta` debe ser `>= 0`.
 - Si se envía un espacio sin `id`, se da de alta antes del inventario.
-- Si no se puede dar de alta el artículo, la medida o el espacio, el sistema
-  NO crea el inventario y revierte todo lo insertado (rollback).
+- Si no se puede dar de alta el artículo, la medida o el espacio, o la medida
+  de venta no existe, el sistema NO crea el inventario y revierte todo lo
+  insertado (rollback).
 
 #### Scenario: Alta con artículo, medida y espacio nuevos
 - **WHEN** se envían un artículo nuevo, una medida nueva y un espacio nuevo sin `id`
@@ -42,6 +46,18 @@ Reglas:
 #### Scenario: Alta con espacio nuevo y stock
 - **WHEN** se envían un artículo, una medida, un espacio nuevo y un `stock` mayor que 0
 - **THEN** el sistema da de alta el espacio, crea el inventario con el stock y responde HTTP 201
+
+#### Scenario: Alta con medida de venta existente
+- **WHEN** se envía un `medida_venta_id` de una medida existente y no eliminada
+- **THEN** el sistema crea el inventario con `medida_venta` asignada y responde HTTP 201
+
+#### Scenario: Alta sin medida de venta
+- **WHEN** no se envía `medida_venta_id`
+- **THEN** el sistema crea el inventario con `medida_venta = null` y responde HTTP 201
+
+#### Scenario: Alta con medida de venta inexistente
+- **WHEN** se envía un `medida_venta_id` de una medida inexistente o eliminada
+- **THEN** el sistema rechaza la operación con HTTP 400 y no inserta nada
 
 #### Scenario: Combinación artículo y medida duplicada
 - **WHEN** la combinación de artículo + medida ya existe en inventario
@@ -61,4 +77,8 @@ Reglas:
 
 #### Scenario: Precio negativo
 - **WHEN** se envía un `precio_venta` menor que 0
+- **THEN** el sistema rechaza la solicitud con HTTP 422 y no inserta nada
+
+#### Scenario: Stock mínimo negativo
+- **WHEN** se envía un `minimo_stock` menor que 0
 - **THEN** el sistema rechaza la solicitud con HTTP 422 y no inserta nada

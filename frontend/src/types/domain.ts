@@ -53,6 +53,7 @@ export type Deposito = {
   descripcion: string | null
   direccion: string | null
   cantidad_espacios: number
+  espacios?: Espacio[]
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -83,9 +84,11 @@ export type InventarioOut = {
   fila: number | null
   columna: number | null
   stock: number
+  minimo_stock: number
   precio_venta: number
   articulo: ArticuloConCategoria
   medida: Medida
+  medida_venta: Medida | null
   espacio: EspacioConDeposito | null
 }
 
@@ -99,6 +102,9 @@ export type InventarioRow = {
   fila: number | null
   columna: number | null
   stock: number
+  minimo_stock: number
+  medida_venta: string | null
+  bajo_minimo: boolean
   precio_venta: number
 }
 
@@ -131,7 +137,9 @@ export type InventarioAltaPayload = {
   fila?: number | null
   columna?: number | null
   stock: number
+  minimo_stock?: number
   precio_venta: number
+  medida_venta_id?: string | null
 }
 
 export type Kpi = {

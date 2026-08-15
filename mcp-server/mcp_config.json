@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ferreteria-inventory": {
+      "command": "python",
+      "args": ["-m", "src.server"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

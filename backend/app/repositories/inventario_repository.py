@@ -12,6 +12,7 @@ def _relaciones_cargadas():
     return (
         selectinload(Inventario.articulo).selectinload(Articulo.categoria),
         selectinload(Inventario.medida),
+        selectinload(Inventario.medida_venta),
         selectinload(Inventario.espacio).selectinload(Espacio.deposito),
     )
 
@@ -25,6 +26,17 @@ class InventarioRepository:
             select(Inventario)
             .options(*_relaciones_cargadas())
             .where(Inventario.deleted_at.is_(None))
+            .order_by(Inventario.articulo_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def list_bajo_minimo(self, skip: int = 0, limit: int = 100) -> list[Inventario]:
+        stmt = (
+            select(Inventario)
+            .options(*_relaciones_cargadas())
+            .where(Inventario.deleted_at.is_(None), Inventario.stock < Inventario.minimo_stock)
             .order_by(Inventario.articulo_id)
             .offset(skip)
             .limit(limit)
