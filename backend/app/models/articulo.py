@@ -14,7 +14,7 @@ class Articulo(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
-    categoria_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("categoria.id"), nullable=False)
+    categoria_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("categoria.id"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow, nullable=False)
@@ -22,3 +22,4 @@ class Articulo(Base):
 
     categoria: Mapped["Categoria"] = relationship(back_populates="articulos")  # type: ignore[name-defined]
     inventarios: Mapped[list["Inventario"]] = relationship(back_populates="articulo")  # type: ignore[name-defined]
+    listas_precios: Mapped[list["ListaPrecios"]] = relationship(back_populates="articulo")  # type: ignore[name-defined]

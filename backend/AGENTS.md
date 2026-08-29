@@ -94,12 +94,15 @@ explícita del usuario.**
 
 1. **Propose** — crear los artefactos del change (proposal, specs, design,
    tasks) con el skill `openspec-propose` (o `/opsx-propose <change>`).
+   - Variante Jira: si el requerimiento ya existe como issue de Jira,
+     usar `/opsx-propose-jira <change> <IF-X>`, que genera la propuesta a
+     partir del issue y lo vincula en `jira.yaml`.
    - Las specs definen el comportamiento esperado (WHAT), no la
      implementación (HOW).
    - `openspec validate <change> --strict` debe pasar antes de implementar.
 
-2. **Jira (si aplica)** — crear la Historia con el skill `jira-create` (o
-   `/jira-create <change>`) y vincularla en `jira.yaml`.
+2. **Jira (si aplica)** — crear la Historia con el skill `jira` (o
+   `/jira <change>`) y vincularla en `jira.yaml`.
 
 3. **Apply / Implementación** — ejecutar las tareas de `tasks.md` con el
    skill `openspec-apply-change` (o `/opsx-apply-jira <change>`). Reglas:
@@ -145,26 +148,37 @@ explícita del usuario.**
 - Skills de SDD/OpenSpec en `.opencode/skills/`: `openspec-propose`,
   `openspec-apply-change`, `openspec-update-change`, `openspec-sync-specs`,
   `openspec-archive-change`, `openspec-explore`.
-- Skill `jira-create`: crear, vincular y transicionar issues de Jira en el
-  proyecto Inventario Ferreteria.
+- Skill `jira`: crear, consultar (lectura vía MCP), buscar, vincular y
+  transicionar issues de Jira en el proyecto Inventario Ferreteria.
 - Los comandos `/opsx-*` documentados en este archivo se ejecutan con los
   skills correspondientes (no dependen de comandos locales).
 
 ## Integración con Jira
 
-El proyecto Jira **Inventario Ferreteria** tiene el key `IF`. Para operar
-contra la API REST de Jira se usan variables de entorno de usuario:
+El proyecto Jira **Inventario Ferreteria** tiene el key `IF`. Todas las
+operaciones (leer, buscar, crear, vincular y transicionar issues) se hacen con
+las **herramientas MCP de Jira**; no llamar a la API REST directamente. La
+autenticación la maneja el servidor MCP.
 
-- `JIRA_API_TOKEN` — token de API de Jira.
-- `JIRA_SITE_URL` — URL del sitio.
-- `JIRA_EMAIL` — email de la cuenta de Jira.
+- Obtener el `cloudId` y la URL del sitio con `getAccessibleAtlassianResources`
+  y usarlos en el resto de las herramientas.
+- URLs públicas de issues: `<url-del-sitio>/browse/IF-<X>` (derivadas, nunca
+  hardcodeadas).
+- Para operar issues usar la skill `jira` (o los comandos `/jira`,
+  `/opsx-propose-jira`).
 
-La autenticación es HTTP Basic con `email:token` contra
-`https://<JIRA_SITE_URL>/rest/api/3`. `JIRA_SITE_URL` puede incluir o no el
-esquema `https://`; normalizarlo (quitar `https?://`) antes de construir URLs
-para evitar dobles esquemas. Para crear issues usar la skill `jira-create` (o
-el comando `/jira-create`). No exponer estas variables en logs ni en archivos
-versionados.
+### Operaciones vía MCP
+
+- **Leer**: `getJiraIssue` (issue completo), `getTeamworkGraphContext` /
+  `getTeamworkGraphObject` (relaciones, Epic padre).
+- **Buscar**: `searchJiraIssuesUsingJql` (JQL) y `search` (texto libre).
+- **Crear/editar**: `createJiraIssue` (con `parent` para Historia bajo Epic o
+  subtareas), `editJiraIssue`.
+- **Transicionar**: `getTransitionsForJiraIssue` + `transitionJiraIssue`,
+  eligiendo por `statusCategory.key`.
+- **Vincular**: `createIssueLink` (entre issues) y `addTeamworkGraphContext`
+  (remote links, best-effort).
+- Si una herramienta MCP falla, avisar al usuario y continuar con soft-fail.
 
 ### Ciclo de vida spec ↔ Jira
 
@@ -176,21 +190,29 @@ key: IF-<X>
 state: created   # created | in_progress | done
 ```
 
-No guardar la URL en `jira.yaml`; derivarla de `JIRA_SITE_URL` normalizado
-(`https://<site-normalizado>/browse/IF-<X>`) cuando se necesite mostrar.
+No guardar la URL en `jira.yaml`; derivarla del `url` del sitio devuelto por
+`getAccessibleAtlassianResources` (`<url>/browse/IF-<X>`) cuando se necesite
+mostrar.
 
 Flujo:
 
 1. `/opsx-propose <change>` — crea la spec (no toca Jira).
-2. `/jira-create <change>` — crea la **Historia** (padre = Epic consultado si
+   - Variante: `/opsx-propose-jira <change> <IF-X>` — genera la propuesta a
+     partir de un issue existente, escribe `jira.yaml` y crea un remote link
+     best-effort (no transiciona estados).
+2. `/jira <change>` — crea la **Historia** (padre = Epic consultado si
    no se especifica), estado inicial "Por hacer" y escribe `jira.yaml`.
 3. `/opsx-apply-jira <change>` — transiciona el issue a **"En curso"** y luego
-   ejecuta el flujo `apply` de OpenSpec.
+   ejecuta el flujo `apply` de OpenSpec. Al finalizar, comenta el issue con el
+   detalle de lo realizado (archivos, endpoints, migraciones y resultado de
+   los tests).
 4. **Validación con el usuario** — reportar resultados y esperar la
    confirmación explícita de que el cambio está completo y aceptado.
 5. `/opsx-archive-jira <change>` — **solo tras la validación del usuario**:
-   transiciona el issue a **"Finalizado"** y luego ejecuta el flujo `archive`
-   de OpenSpec. `jira.yaml` se archiva junto con la carpeta del change.
+   comenta que se finalizaron las validaciones de lo desarrollado y que se
+   cierra el issue, lo transiciona a **"Finalizado"** y luego ejecuta el flujo
+   `archive` de OpenSpec. `jira.yaml` se archiva junto con la carpeta del
+   change.
 
 Reglas:
 
@@ -200,6 +222,8 @@ Reglas:
 - Idempotencia: si el issue ya está en el estado objetivo, no se transiciona.
 - Transiciones por `statusCategory.key` (`indeterminate` → "En curso",
   `done` → "Finalizado"), robusto a idiomas.
+- Comentarios vía `addCommentToJiraIssue` (markdown); si fallan, avisar y
+  continuar (soft-fail), sin duplicar el comentario de cierre.
 - El archive nunca se auto-ejecuta: requiere validación previa del usuario.
 
 ## Seguridad

@@ -12,8 +12,8 @@ class ArticuloAlta(BaseModel):
 
     @model_validator(mode="after")
     def validar_articulo_nuevo(self):
-        if self.id is None and (self.nombre is None or self.categoria_id is None):
-            raise ValueError("Para un artículo nuevo se requieren nombre y categoria_id")
+        if self.id is None and self.nombre is None:
+            raise ValueError("Para un artículo nuevo se requiere nombre")
         return self
 
 

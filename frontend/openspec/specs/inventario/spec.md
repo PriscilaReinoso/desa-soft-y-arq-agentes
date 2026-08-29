@@ -102,15 +102,19 @@ El sistema SHALL mostrar una tabla con las columnas Categoría, Artículo, Medid
 - **THEN** el sistema persiste el cambio y actualiza la fila con la nueva medida
 
 ### Requirement: Acciones por artículo
-El sistema SHALL mostrar a la derecha de cada fila de la tabla de inventario una columna de acciones compuesta por tres botones solo-ícono (sin texto): editar, añadir a preventa y eliminar. El botón de añadir a preventa SHALL estar deshabilitado con la indicación de que será disponibilidad futura.
+El sistema SHALL mostrar a la derecha de cada fila de la tabla de inventario una columna de acciones compuesta por tres botones solo-ícono (sin texto): editar, carrito (alta de venta) y eliminar. El botón de carrito SHALL estar habilitado y abrir el formulario de alta de venta para ese artículo, cuyo comportamiento se define en la capability `ventas`.
 
 #### Scenario: Visualización de las acciones
 - **WHEN** el usuario abre la sección de inventario
-- **THEN** cada fila muestra a la derecha tres botones solo-ícono: editar, añadir a preventa (deshabilitado) y eliminar
+- **THEN** cada fila muestra a la derecha tres botones solo-ícono: editar, carrito (alta de venta) y eliminar
 
 #### Scenario: Botones de íconos sin texto
 - **WHEN** el usuario inspecciona la columna de acciones
 - **THEN** los botones no contienen texto sino un ícono identificador
+
+#### Scenario: Apertura del alta de venta
+- **WHEN** el usuario hace clic en el botón de carrito de un artículo
+- **THEN** el sistema abre el formulario de alta de venta para ese artículo
 
 ### Requirement: Edición de un artículo
 El sistema SHALL abrir un modal precargado con los datos del registro al hacer clic en el botón de editar, permitiendo actualizar el artículo vinculado (nombre, descripción y categoría), la medida del ítem, el espacio, la fila, la columna, el stock, el stock mínimo y el precio de venta. Al confirmar, el sistema SHALL enviar `PUT /api/v1/inventarios/{id}` y refrescar el listado.

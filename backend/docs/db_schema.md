@@ -79,7 +79,7 @@ Campos:
 - id UUID PK
 - nombre VARCHAR(100) NOT NULL
 - descripcion TEXT
-- categoria_id UUID FK -> categoria.id
+- categoria_id UUID FK -> categoria.id NULLABLE
 
 Restricciones:
 - UNIQUE(nombre)
@@ -195,11 +195,29 @@ Relaciones:
 
 ---
 
+## proveedor_categoria
+
+Campos:
+- id UUID PK
+- proveedor_id UUID FK -> proveedor.id
+- categoria_id UUID FK -> categoria.id
+
+Índices:
+- INDEX(categoria_id)
+
+Relaciones:
+- N:1 proveedor
+- N:1 categoria
+
+---
+
+
 ## lista_precios
 
 Campos:
 - id UUID PK
 - articulo_id UUID FK -> articulo.id
+- medida_id UUID FK -> medida.id
 - proveedor_id UUID FK -> proveedor.id
 - id_articulo_proveedor VARCHAR(100)
 - precio_lista NUMERIC(12,2)
@@ -218,6 +236,114 @@ Relaciones:
 
 ---
 
+## presupuesto_cabecera
+
+Campos:
+- id UUID PK
+- fecha timestamp
+- numero NUMERIC(12) PK -> AUTOINCREMENTAL DEFAULT 1
+- cantidad NUMERIC(12)
+- total NUMERIC(12,2)
+- cliente VARCHAR(100)
+- aprobado bool -> default false
+- dias_valido NUMERIC(12,2)
+
+Restricciones:
+- UNIQUE(numero)
+- CHECK(total >= 0)
+
+Índices:
+- INDEX(numero)
+- INDEX(cliente)
+
+---
+
+## presupuesto_detalle
+
+Campos:
+
+- id UUID PK
+- presupuesto_id UUID FK -> presupuesto_cabecera.id
+- articulo_id UUID FK -> articulo.id
+- medida_id UUID FK -> medida.id
+- cantidad NUMERIC(12)
+- precio_venta NUMERIC(12,2)
+- sub_total NUMERIC(12,2)
+
+Restricciones:
+- UNIQUE(presupuesto_id, articulo_id, medida_id)
+- CHECK(precio_venta >= 0)
+
+Índices:
+- INDEX(articulo_id)
+- INDEX(presupuesto_id)
+
+Relaciones:
+- N:1 presupuesto_cabecera
+
+---
+
+## metodo_pago
+
+Campos:
+- id UUID PK
+- nombre VARCHAR(50) UNIQUE NOT NULL
+- descripcion TEXT
+
+Relaciones:
+- 1:N ventas
+
+---
+
+## venta_cabecera
+
+Campos:
+- id UUID PK
+- fecha timestamp
+- presupuesto_id UUID FK -> puede ser null
+- numero NUMERIC(12) PK -> AUTOINCREMENTAL DEFAULT 1
+- cantidad NUMERIC(12)
+- total NUMERIC(12,2)
+- cliente VARCHAR(100)
+- aprobado bool -> default false
+
+Restricciones:
+- UNIQUE(numero)
+- CHECK(total >= 0)
+
+Índices:
+- INDEX(numero)
+- INDEX(cliente)
+- INDEX(presupuesto_id)
+
+Relaciones:
+- 1:1 presupuesto_id
+---
+
+## venta_detalle
+
+Campos:
+
+- id UUID PK
+- articulo_id UUID FK -> articulo.id
+- medida_id UUID FK -> medida.id
+- cantidad NUMERIC(12)
+- precio_venta NUMERIC(12,2)
+- sub_total NUMERIC(12,2)
+- metodo_pago_id UUID FK
+
+Restricciones:
+- CHECK(precio_venta >= 0)
+
+Índices:
+- INDEX(articulo_id)
+
+Relaciones:
+- N:1 metodo_pago
+
+---
+
+
 # Relaciones generales
 
 - rol 1:N usuario
@@ -228,6 +354,7 @@ Relaciones:
 - espacio 1:N inventario
 - proveedor 1:N lista_precios
 - articulo 1:N lista_precios
+- presupuesto_cabecera 1:N presupuesto_detalle
 
 ---
 

@@ -5,7 +5,24 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
 from app.core.database import Base
-from app.models import Articulo, Categoria, Deposito, Espacio, Inventario, Medida, Rol, Usuario  # noqa: F401
+from app.models import (  # noqa: F401
+    Articulo,
+    Categoria,
+    Deposito,
+    Espacio,
+    Inventario,
+    ListaPrecios,
+    Medida,
+    MetodoPago,
+    PresupuestoCabecera,
+    PresupuestoDetalle,
+    Proveedor,
+    ProveedorCategoria,
+    Rol,
+    Usuario,
+    VentaCabecera,
+    VentaDetalle,
+)
 
 config = context.config
 

@@ -48,7 +48,7 @@ class AltaInventarioService:
             return articulo
         if self.articulo_repository.get_by_nombre(data.nombre) is not None:
             raise ConflictError(detail="Ya existe un artículo con ese nombre")
-        if self.categoria_repository.get(data.categoria_id) is None:
+        if data.categoria_id is not None and self.categoria_repository.get(data.categoria_id) is None:
             raise BadRequestError(detail="La categoría no existe o está eliminada")
         articulo = Articulo(
             nombre=data.nombre,

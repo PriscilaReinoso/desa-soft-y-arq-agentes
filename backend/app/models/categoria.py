@@ -20,3 +20,4 @@ class Categoria(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     articulos: Mapped[list["Articulo"]] = relationship(back_populates="categoria")  # type: ignore[name-defined]
+    proveedor_assoc: Mapped[list["ProveedorCategoria"]] = relationship(back_populates="categoria")  # type: ignore[name-defined]

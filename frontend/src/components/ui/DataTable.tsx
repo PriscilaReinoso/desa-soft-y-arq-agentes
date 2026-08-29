@@ -16,6 +16,7 @@ type Props<T> = {
   rowKey: (row: T) => string
   headerPadding?: string
   cellPadding?: string
+  rowClassName?: (row: T) => string | undefined
 }
 
 export default function DataTable<T>({
@@ -24,6 +25,7 @@ export default function DataTable<T>({
   rowKey,
   headerPadding = '11px 16px',
   cellPadding = '12px 16px',
+  rowClassName,
 }: Props<T>) {
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -43,7 +45,10 @@ export default function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={rowKey(row)} className={i > 0 ? 'border-t border-border' : undefined}>
+            <tr
+              key={rowKey(row)}
+              className={[i > 0 ? 'border-t border-border' : undefined, rowClassName?.(row)].filter(Boolean).join(' ') || undefined}
+            >
               {columns.map((col) => (
                 <td
                   key={col.key}

@@ -13,6 +13,8 @@ import { useCategorias } from '../hooks/useCategorias'
 import { useDepositos } from '../hooks/useDepositos'
 import { useEspacios } from '../hooks/useEspacios'
 import { useMedidas } from '../hooks/useMedidas'
+import { useCrearVenta } from '../hooks/useVentas'
+import { useMetodosPago } from '../hooks/useMetodosPago'
 import { formatCurrency } from '../lib/format'
 import type { InventarioAltaPayload, InventarioOut, InventarioRow } from '../types/domain'
 import Alert from '../components/ui/Alert'
@@ -59,6 +61,13 @@ type EditarFormValues = {
   minimo_stock: number
   precio_venta: number
   medida_venta_id: string
+}
+
+type VentaFormValues = {
+  cantidad: number
+  cliente: string
+  metodo_pago_id: string
+  aprobado: boolean
 }
 
 const columns: Column<InventarioRow>[] = [
@@ -134,6 +143,7 @@ export default function InventoryPage() {
   const [showForm, setShowForm] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<InventarioOut | null>(null)
+  const [ventaArticulo, setVentaArticulo] = useState<InventarioOut | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [articuloMode, setArticuloMode] = useState<'existente' | 'nuevo'>('existente')
@@ -145,6 +155,8 @@ export default function InventoryPage() {
   const actualizarMutation = useActualizarInventario()
   const actualizarArticuloMutation = useActualizarArticulo()
   const eliminarMutation = useEliminarInventario()
+  const ventaMutation = useCrearVenta()
+  const metodosQuery = useMetodosPago({ enabled: ventaArticulo !== null })
   const articulosQuery = useArticulos({ enabled: showForm })
   const categoriasQuery = useCategorias({ enabled: showForm || modalOpen })
   const medidasQuery = useMedidas({ enabled: showForm || modalOpen })
@@ -198,6 +210,21 @@ export default function InventoryPage() {
     },
   })
 
+  const {
+    register: registerVenta,
+    handleSubmit: handleVentaSubmit,
+    control: controlVenta,
+    reset: resetVenta,
+    formState: { errors: ventaErrors },
+  } = useForm<VentaFormValues>({
+    defaultValues: {
+      cantidad: 0,
+      cliente: '',
+      metodo_pago_id: '',
+      aprobado: true,
+    },
+  })
+
   const medidaOptions = useMemo(
     () =>
       (medidasQuery.data ?? []).map((m) => ({
@@ -205,6 +232,15 @@ export default function InventoryPage() {
         label: `${m.medida} ${m.unidad_medida}`.trim(),
       })),
     [medidasQuery.data],
+  )
+
+  const metodoPagoOptions = useMemo(
+    () =>
+      (metodosQuery.data ?? []).map((m) => ({
+        value: m.id,
+        label: m.nombre,
+      })),
+    [metodosQuery.data],
   )
 
   const rows = useMemo<InventarioRow[]>(
@@ -280,6 +316,37 @@ export default function InventoryPage() {
     setModalOpen(false)
     setEditing(null)
     resetEdit()
+  }
+
+  const openVenta = (row: InventarioRow) => {
+    const inv = inventariosQuery.data?.find((i) => i.id === row.id)
+    if (!inv) return
+    setVentaArticulo(inv)
+    resetVenta({ cantidad: 0, cliente: '', metodo_pago_id: '', aprobado: true })
+  }
+
+  const closeVenta = () => {
+    setVentaArticulo(null)
+    resetVenta()
+  }
+
+  const onVentaSubmit = (values: VentaFormValues) => {
+    if (!ventaArticulo) return
+    ventaMutation.mutate(
+      {
+        items: [
+          {
+            inventario_id: ventaArticulo.id,
+            cantidad: Number(values.cantidad),
+            metodo_pago_id: values.metodo_pago_id || null,
+          },
+        ],
+        aprobado: values.aprobado,
+        cliente: values.cliente.trim() || null,
+        presupuesto_id: null,
+      },
+      { onSuccess: closeVenta },
+    )
   }
 
   const onEditSubmit = async (values: EditarFormValues) => {
@@ -381,6 +448,13 @@ export default function InventoryPage() {
       : eliminarMutation.error.message
   })()
 
+  const ventaError = (() => {
+    if (!ventaMutation.error) return null
+    return ventaMutation.error instanceof ApiError
+      ? ventaMutation.error.message
+      : ventaMutation.error.message
+  })()
+
   const maestroError = (() => {
     const queries = [articulosQuery, categoriasQuery, medidasQuery, depositosQuery, espaciosQuery]
     const failed = queries.find((q) => q.isError)
@@ -427,9 +501,8 @@ export default function InventoryPage() {
           <Button
             variant="ghost"
             size="sm"
-            disabled
-            title="Disponibilidad futura"
-            aria-label={`Añadir a preventa ${r.articulo}`}
+            aria-label={`Registrar venta de ${r.articulo}`}
+            onClick={() => openVenta(r)}
           >
             🛒
           </Button>
@@ -887,6 +960,77 @@ export default function InventoryPage() {
               </Button>
               <Button type="submit" size="sm" disabled={submitting}>
                 {submitting ? 'Guardando…' : 'Guardar'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal open={Boolean(ventaArticulo)} onClose={closeVenta} title="Registrar venta" width={480}>
+        {ventaArticulo && (
+          <form onSubmit={handleVentaSubmit(onVentaSubmit)} noValidate>
+            <div className="rounded-lg border border-border p-3.5 mb-4">
+              <div className="text-sm">
+                <span className="font-bold">{ventaArticulo.articulo.nombre}</span>
+                <span className="text-muted-foreground">
+                  {' '}— {`${ventaArticulo.medida.medida} ${ventaArticulo.medida.unidad_medida}`.trim()}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Stock disponible: <span className="font-bold text-foreground">{ventaArticulo.stock}</span>
+              </div>
+            </div>
+
+            <div className="grid gap-3.5">
+              <Field label="Cantidad vendida" error={ventaErrors.cantidad?.message}>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  placeholder="0"
+                  {...registerVenta('cantidad', {
+                    valueAsNumber: true,
+                    validate: (v) =>
+                      Number.isInteger(v) && v > 0 ? true : 'Ingresá una cantidad entera mayor a 0',
+                  })}
+                />
+              </Field>
+              <Field label="Cliente">
+                <Input placeholder="Nombre del cliente (opcional)" {...registerVenta('cliente')} />
+              </Field>
+              <Field label="Tipo de pago">
+                <Controller
+                  control={controlVenta}
+                  name="metodo_pago_id"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      options={metodoPagoOptions}
+                      placeholder="Buscar tipo de pago…"
+                      optional
+                      noneLabel="Sin tipo de pago"
+                    />
+                  )}
+                />
+              </Field>
+              <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                <input type="checkbox" {...registerVenta('aprobado')} />
+                Venta aprobada
+              </label>
+            </div>
+
+            {ventaError && (
+              <Alert style={{ marginTop: 14 }}>{ventaError}</Alert>
+            )}
+
+            <div className="flex gap-2.5 mt-5 justify-end">
+              <Button type="button" variant="muted" size="sm" onClick={closeVenta}>
+                Cancelar
+              </Button>
+              <Button type="submit" size="sm" disabled={ventaMutation.isPending}>
+                {ventaMutation.isPending ? 'Registrando…' : 'Registrar venta'}
               </Button>
             </div>
           </form>

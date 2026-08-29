@@ -15,7 +15,7 @@ const NAV: NavItem[] = [
   { to: '/inicio', label: 'Inicio', icon: '⊞', group: 'Principal' },
   { to: '/inventario', label: 'Inventario', icon: '◫', group: 'Gestión' },
   { to: '/depositos', label: 'Depósitos', icon: '⬡', group: 'Gestión' },
-  { to: '/ventas', label: 'Ventas', icon: '◈', group: 'Gestión' },
+  { to: '/ventas', label: 'Ventas', icon: '◈', group: 'Ventas' },
   { to: '/proveedores', label: 'Proveedores', icon: '◎', group: 'Gestión' },
   { to: '/listas-de-precios', label: 'Listas de precios', icon: '◷', group: 'Gestión' },
   { to: '/presupuestos', label: 'Presupuestos', icon: '◧', group: 'Ventas' },

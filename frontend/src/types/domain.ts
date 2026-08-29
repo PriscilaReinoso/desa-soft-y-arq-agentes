@@ -150,38 +150,114 @@ export type Kpi = {
   icon: string
 }
 
-export type Venta = {
-  id: string
-  date: string
-  client: string
-  items: number
-  total: number
-  status: 'Entregado' | 'Pendiente' | 'En camino'
-  payment: string
-}
-
-export type VentaStatus = Venta['status']
-
 export type Proveedor = {
   id: string
-  name: string
-  contact: string
-  email: string
-  phone: string
-  categories: string[]
-  lastOrder: string
-  balance: number
-  rating: number
+  nombre: string
+  apellido: string
+  telefono: string
+  direccion: string | null
+  categorias: Categoria[]
 }
 
-export type ListaPrecios = {
+export type ProveedorCreatePayload = {
+  nombre: string
+  apellido: string
+  telefono: string
+  direccion?: string | null
+  categoria_ids?: string[]
+}
+
+export type ProveedorUpdatePayload = {
+  nombre?: string
+  apellido?: string
+  telefono?: string
+  direccion?: string | null
+  categoria_ids?: string[]
+}
+
+export type ListaPrecioOut = {
   id: string
-  name: string
-  description: string
-  multiplier: number
-  items: number
-  updated: string
-  active: boolean
+  articulo: Articulo
+  medida: Medida
+  proveedor: Proveedor
+  id_articulo_proveedor: string | null
+  precio_lista: number
+}
+
+export type CantidadListaPorProveedor = {
+  proveedor: Proveedor
+  cantidad: number
+}
+
+export type ItemListaPrecioPayload = {
+  articulo: ArticuloAltaPayload
+  medida: MedidaAltaPayload
+  id_articulo_proveedor?: string | null
+  precio_lista: number
+}
+
+export type ListaPreciosAltaPayload = {
+  proveedor_id?: string | null
+  proveedor?: ProveedorCreatePayload | null
+  items: ItemListaPrecioPayload[]
+}
+
+export type ListaPreciosUpdatePayload = {
+  precio_lista: number
+  id_articulo_proveedor?: string | null
+}
+
+export type MapeoColumna = {
+  key: string
+  value: string
+}
+
+export type MetodoPago = {
+  id: string
+  nombre: string
+  descripcion: string | null
+}
+
+export type ItemVentaPayload = {
+  inventario_id: string
+  cantidad: number
+  metodo_pago_id?: string | null
+}
+
+export type VentaCreatePayload = {
+  items: ItemVentaPayload[]
+  aprobado: boolean
+  cliente?: string | null
+  presupuesto_id?: string | null
+}
+
+export type VentaUpdatePayload = {
+  items?: ItemVentaPayload[]
+  aprobado?: boolean
+  cliente?: string | null
+  presupuesto_id?: string | null
+}
+
+export type VentaDetalleOut = {
+  id: string
+  articulo: Articulo
+  medida: Medida
+  cantidad: number
+  precio_venta: string
+  sub_total: string
+  metodo_pago_id: string | null
+}
+
+export type VentaOut = {
+  id: string
+  fecha: string
+  numero: number
+  cantidad: number
+  total: string
+  cliente: string | null
+  aprobado: boolean
+  presupuesto_id: string | null
+  detalles: VentaDetalleOut[]
 }
 
 export type Presupuesto = {
@@ -201,12 +277,6 @@ export type Renglon = {
   unit: string
   price: number
   subtotal: number
-}
-
-export type Producto = {
-  code: string
-  name: string
-  base: number
 }
 
 export type ArticuloItem = {

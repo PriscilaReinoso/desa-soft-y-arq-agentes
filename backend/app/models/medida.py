@@ -22,3 +22,4 @@ class Medida(Base):
 
     inventarios: Mapped[list["Inventario"]] = relationship(foreign_keys="Inventario.medida_id", back_populates="medida")  # type: ignore[name-defined]
     inventarios_venta: Mapped[list["Inventario"]] = relationship(foreign_keys="Inventario.medida_venta_id", back_populates="medida_venta")  # type: ignore[name-defined]
+    listas_precios: Mapped[list["ListaPrecios"]] = relationship(back_populates="medida")  # type: ignore[name-defined]

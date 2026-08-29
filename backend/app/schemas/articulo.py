@@ -21,4 +21,4 @@ class ArticuloOut(BaseModel):
     id: uuid.UUID
     nombre: str
     descripcion: str | None
-    categoria_id: uuid.UUID
+    categoria_id: uuid.UUID | None

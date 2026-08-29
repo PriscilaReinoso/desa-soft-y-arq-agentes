@@ -19,7 +19,7 @@ Interpretar `$ARGUMENTS`:
 
 Pasos:
 
-1. Cargar la skill `jira-create` y seguir su procedimiento.
+1. Cargar la skill `jira` y seguir su procedimiento.
 2. Si aplica a un change: leer `openspec/changes/<change>/proposal.md` y
    `tasks.md` para derivar resumen y descripción.
 3. Verificar que `openspec/changes/<change>/jira.yaml` no exista ya; si existe,
@@ -27,6 +27,6 @@ Pasos:
 4. Crear la **Historia** con parent = Epic consultado (si no se especificó),
    estado inicial del workflow ("Por hacer").
 5. Escribir `jira.yaml` en el change con `key` y `state: created` (la URL no se
-   guarda; se deriva de `JIRA_SITE_URL` al mostrarla).
+   guarda; se deriva del sitio al mostrarla).
 6. Devolver la URL del issue creado (formato
    `https://<sitio>/browse/<KEY>`) y la ruta de `jira.yaml`.
