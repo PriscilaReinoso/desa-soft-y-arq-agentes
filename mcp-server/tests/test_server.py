@@ -2,13 +2,13 @@
 
 import asyncio
 import unittest
-from src.server import (
+from app.server import mcp
+from app.tools.inventory import (
     search_products,
     get_product_details,
     check_low_stock,
     list_categories,
-    get_stock_movements,
-    mcp,
+    get_stock_inventory,
 )
 
 
@@ -23,7 +23,7 @@ class TestFerreteriaMCPServer(unittest.TestCase):
             "get_product_details",
             "check_low_stock",
             "list_categories",
-            "get_stock_movements",
+            "get_stock_inventory",
         ]
         for expected in expected_tools:
             self.assertIn(expected, tool_names)
@@ -36,14 +36,14 @@ class TestFerreteriaMCPServer(unittest.TestCase):
         res_search = search_products(query="Martillo")
         self.assertIn("status", res_search)
 
-        res_details = get_product_details(sku="HM-MAR-001")
+        res_details = get_product_details(product_id="00000000-0000-0000-0000-000000000001")
         self.assertIn("status", res_details)
 
         res_low_stock = check_low_stock()
         self.assertIn("status", res_low_stock)
 
-        res_movements = get_stock_movements(product_id=1)
-        self.assertIn("status", res_movements)
+        res_stock = get_stock_inventory()
+        self.assertIn("status", res_stock)
 
 
 if __name__ == "__main__":

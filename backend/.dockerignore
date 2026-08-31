@@ -1,0 +1,33 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Git y herramental
+.git/
+.gitignore
+.github/
+
+# Tests
+tests/
+
+# Documentación y notas
+docs/
+*.md
+
+# Otros
+.idea/
+.vscode/
+*.log
+sonar-project.properties

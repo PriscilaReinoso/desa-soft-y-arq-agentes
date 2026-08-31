@@ -49,10 +49,10 @@ O manualmente:
 ```bash
 venv\Scripts\activate
 # Interactivo
-python chat.py
+python -m app.cli
 # Pregunta única
-python chat.py --question "Que productos tienen bajo stock?"
-python chat.py --conversation-id <uuid>
+python -m app.cli --question "Que productos tienen bajo stock?"
+python -m app.cli --conversation-id <uuid>
 ```
 
 ---
@@ -60,7 +60,7 @@ python chat.py --conversation-id <uuid>
 ## API HTTP
 
 ```bash
-venv\Scripts\python -m uvicorn api:app --host 0.0.0.0 --port 8001
+venv\Scripts\python -m uvicorn app.api:app --host 0.0.0.0 --port 8001
 ```
 
 | Método | Ruta | Body | Respuesta |
@@ -95,9 +95,11 @@ Los chats se persisten en `conversaciones/<uuid>.json`.
 
 ## Estructura
 
-| Archivo | Contenido |
+| Ruta | Contenido |
 |---|---|
-| `agent.py` | Grafo multi-agente en LangGraph (supervisor → ventas/inventario) + conexión MCP |
-| `chat.py` | CLI y lógica de persistencia de conversaciones |
-| `api.py` | API HTTP (FastAPI) para el frontend |
+| `app/api.py` | API HTTP (FastAPI) para el frontend |
+| `app/agent/` | Orquestador multi-agente en LangGraph (supervisor → ventas/inventario) + conexión MCP |
+| `app/services/` | Lógica de negocio reutilizable (persistencia de conversaciones y fábrica del LLM) |
+| `app/cli.py` | CLI interactivo / pregunta única |
 | `conversaciones/` | Historiales en JSON |
+| `tests/` | Pruebas unitarias e integración (pytest) |

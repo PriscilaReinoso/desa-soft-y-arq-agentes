@@ -1,0 +1,105 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ferreteria_db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ferreteria_migrate
+    restart: "no"
+    command: ["/bin/sh", "-c", "alembic upgrade head && PGPASSWORD=\"$$DB_PASSWORD\" psql -h \"$$DB_HOST\" -p \"$$DB_PORT\" -U \"$$DB_USER\" -d \"$$DB_NAME\" -v ON_ERROR_STOP=1 -f /init.sql"]
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+    volumes:
+      - ./init.sql:/init.sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ferreteria_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      CORS_ORIGINS: '["http://127.0.0.1","http://127.0.0.1:80"]'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://127.0.0.1:8000/api/v1
+        VITE_CHAT_API_BASE_URL: http://127.0.0.1:8001
+    container_name: ferreteria_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  bot-chat:
+    build:
+      context: ./bot-chat
+      dockerfile: Dockerfile
+      additional_contexts:
+        mcp-server: ./mcp-server
+    container_name: ferreteria_bot_chat
+    restart: unless-stopped
+    env_file:
+      - ./bot-chat/.env
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_MODEL: ${LLM_MODEL}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    volumes:
+      - conv_data:/app/bot-chat/conversaciones
+
+volumes:
+  postgres_data:
+  conv_data:

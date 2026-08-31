@@ -1,32 +1,69 @@
-# Antigravity Workspace Guidelines & Agent Rules
+# AGENTS.md
 
-Bienvenido a la configuración de Antigravity para el desarrollo de **Servidores MCP (Model Context Protocol)** y **Arquitectura de Agentes con IA**.
+Instrucciones globales para los agentes de opencode en el mcp-server del
+**Sistema de Gestión de Inventario para Ferretería**.
 
-## 🎯 Propósito del Proyecto
-Este repositorio contiene la implementación y prácticas de servidores MCP y agentes inteligentes, enfocados en interoperabilidad, invocación de herramientas, gestión de contexto y desarrollo seguro.
+## Descripción del proyecto
 
----
+Este proyecto implementa un MCP Server encargado de proporcionar al agente de IA herramientas (tools) para consultar información del sistema de gestión de inventario de una ferreteria.
 
-## 📜 Reglas del Agente (Always-On Guidelines)
+- Se comunica con el agente mediante MCP sobre STDIO.
+- Accede directamente a PostgreSQL.
+- Expone únicamente operaciones controladas y definidas como MCP tools.
+- Permite consultas sobre productos, proveedores, stock y demás información del inventario.
+- Puede utilizar pgvector para búsquedas semánticas cuando corresponda.
 
-### 1. Principios de Arquitectura MCP
-- **Específicos y Estructurados**: Las herramientas MCP (`tools`) deben tener nombres descriptivos en snake_case y esquemas de parámetros explícitos mediante JSON Schema / Zod.
-- **Manejo de Errores Limpio**: Los errores en ejecuciones de herramientas deben devolverse dentro del payload de respuesta del protocolo (`isError: true` o mensajes claros) sin colapsar el proceso del servidor.
-- **Sin Efectos Secundarios Ocultos**: Las herramientas de modificación o escrituras en sistema deben solicitar o requerir confirmación explícita según las directivas de seguridad.
+## Stack tecnológico
 
-### 2. Calidad de Código y Estilo
-- **Documentación Completa**: Preservar y agregar JSDoc / Docstrings en cada handler de tool o recurso.
-- **Tipado Estricto**: Usar TypeScript o Python con type hints rigurosos. Evitar tipos implícitos como `any`.
-- **Verificación Práctica**: Todo cambio o nueva herramienta debe ser verificada antes de dar por completada la tarea mediante pruebas unitarias o scripts de prueba local.
+- Python 3.12, Fast MCP
+- PostgreSQL con pgvector (búsqueda semántica del asistente).
+- Pytest para pruebas.
+- Docker para contenerización.
 
-### 3. Buenas Prácticas de Agentes con Antigravity
-- **División de Tareas**: Delegar tareas pesadas o de investigación amplia a subagentes especificando un rol y propósito claro.
-- **Uso de Skills**: Consultar las habilidades disponibles en `.agents/skills/` según la tarea requerida (`mcp-builder`, `agent-architect`).
+## Estructura del proyecto
 
----
+```
+app/
+  server.py              # Punto de entrada de MCP.
+  core/
+    config.py          # Configuración de la aplicación y variables de entorno.
+    database.py        # Configuración del sesiones y conexión a PostgreSQL.
+  tools/                 # Herramientas MCP
+  services/                 # Logica de negocio reutilizable
+tests/                 # Pruebas unitarias e integración con pytest.
+.env                   # Variables de entorno para desarrollo (no versionar).
+.env.example           # Ejemplo de variables de entorno requeridas.
+docs/
+  de_schama.md             # Documentacion del esquema de la base de datos
+README.md              # Documentación del proyecto e instrucciones de instalación.
 
-## 🛠️ Herramientas y Subagentes Disponibles
-- **Skills**:
-  - [`mcp-builder`](.agents/skills/mcp-builder/SKILL.md): Guía paso a paso para construir, validar y probar herramientas y recursos MCP.
-  - [`agent-architect`](.agents/skills/agent-architect/SKILL.md): Guía para diseño de arquitectura de agentes, prompts y patrones de orquestación.
-- **Configuración MCP**: Configurado en `mcp_config.json`.
+```
+
+## Convenciones
+
+- Utizar snake_case para las tools.
+- Nombres descriptivos en de las tools en español; descripcion de la tool en español:
+- Esquema de bases de datos dentro de docs/db_schemma.md
+- Comentarios solo cuando aportan valor; no repetir el código.
+- Mantener cada archivo con una única responsabilidad.
+- No escribir secretos en código ni en archivos versionados; usar variables
+  de entorno.
+
+## Arquitectura
+
+La aplicación sigue una arquitectura por capas:
+
+Bot-Chat
+    ↓
+Comunicacion STDIO (RPC)
+    ↓
+MCP Server (Proceso hijo del bot chat)
+    ↓
+SQL / pgvector
+    ↓
+PostgreSQL
+
+## Seguridad
+
+- No exponer tools que permitan al agente enviar consultas SQL de formar arbitraria al MCP
+- No exponer contraseñas y/o datos sensibles

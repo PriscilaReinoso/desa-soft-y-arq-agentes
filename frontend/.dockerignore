@@ -1,0 +1,25 @@
+# Dependencias
+node_modules
+npm-debug.log*
+
+# Build
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Entorno y secretos (nunca entrar al contexto/la imagen)
+.env
+.env.*
+!.env.example
+
+# Editor / SO
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git / contenedores
+.git
+.gitignore
+Dockerfile
+.dockerignore

@@ -6,6 +6,23 @@ Servidor [Model Context Protocol (MCP)](https://modelcontextprotocol.io) constru
 
 - Comunicacion stidio con bot-chat, este lo invoca.
 
+## Estructura
+
+```
+app/
+  server.py              # Punto de entrada de MCP.
+  core/
+    config.py            # Configuración de la aplicación y variables de entorno.
+    database.py          # Conexión y consultas a PostgreSQL.
+  tools/
+    inventory.py         # Herramientas MCP de consulta de inventario.
+  services/
+    inventory.py         # Lógica de negocio reutilizable de inventario.
+docs/
+  db_schema.md           # Documentación del esquema de la base de datos.
+tests/                   # Pruebas unitarias e integración con pytest.
+```
+
 ## Herramientas
 
 | Tool | Descripción |
