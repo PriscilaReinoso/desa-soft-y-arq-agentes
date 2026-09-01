@@ -10,12 +10,13 @@ from app.tools.inventory import (
     list_categories,
     get_stock_inventory,
 )
+from app.tools.semantic_search import semantic_search
 
 
 class TestFerreteriaMCPServer(unittest.TestCase):
 
     def test_mcp_tools_registration(self):
-        """Verify all 5 tools are registered on the FastMCP server instance."""
+        """Verify all 6 tools are registered on the FastMCP server instance."""
         tools = asyncio.run(mcp.list_tools())
         tool_names = [tool.name for tool in tools]
         expected_tools = [
@@ -24,6 +25,7 @@ class TestFerreteriaMCPServer(unittest.TestCase):
             "check_low_stock",
             "list_categories",
             "get_stock_inventory",
+            "semantic_search",
         ]
         for expected in expected_tools:
             self.assertIn(expected, tool_names)
@@ -44,6 +46,13 @@ class TestFerreteriaMCPServer(unittest.TestCase):
 
         res_stock = get_stock_inventory()
         self.assertIn("status", res_stock)
+
+    def test_semantic_search_requires_query(self):
+        """semantic_search validates that a query is provided (no model/DB needed)."""
+        res = semantic_search(query="   ")
+        self.assertIn("status", res)
+        self.assertEqual(res["status"], "error")
+        self.assertTrue(res.get("isError", False))
 
 
 if __name__ == "__main__":

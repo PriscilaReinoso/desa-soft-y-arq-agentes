@@ -41,6 +41,7 @@ Pasos:
      del sitio) como referencia del requerimiento.
    - Respetar todos los guardrails de `openspec-propose` (artefactos
      transitivamente requeridos, relectura de dependencias, etc.).
+   - El nombre del cambio en `openspec/` debe ser el titulo del jira. 
 5. Escribir `openspec/changes/<change>/jira.yaml`:
    ```yaml
    key: IF-<X>
