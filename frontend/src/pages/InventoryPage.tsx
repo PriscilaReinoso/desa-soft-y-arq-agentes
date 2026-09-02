@@ -35,6 +35,7 @@ import Select from '../components/ui/Select'
 type AltaFormValues = {
   articulo_id: string
   articulo_nombre: string
+  articulo_descripcion: string
   articulo_categoria_id: string
   medida_id: string
   medida_unidad: string
@@ -173,6 +174,7 @@ export default function InventoryPage() {
     defaultValues: {
       articulo_id: '',
       articulo_nombre: '',
+      articulo_descripcion: '',
       articulo_categoria_id: '',
       medida_id: '',
       medida_unidad: '',
@@ -397,7 +399,11 @@ export default function InventoryPage() {
       articulo:
         articuloMode === 'existente'
           ? { id: values.articulo_id }
-          : { nombre: values.articulo_nombre, categoria_id: values.articulo_categoria_id },
+          : {
+              nombre: values.articulo_nombre,
+              descripcion: values.articulo_descripcion.trim() || null,
+              categoria_id: values.articulo_categoria_id,
+            },
       medida:
         medidaMode === 'existente'
           ? { id: values.medida_id }
@@ -596,6 +602,12 @@ export default function InventoryPage() {
                           </option>
                         ))}
                       </Select>
+                    </Field>
+                    <Field label="Descripción" error={errors.articulo_descripcion?.message}>
+                      <Input
+                        placeholder="Descripción opcional"
+                        {...register('articulo_descripcion')}
+                      />
                     </Field>
                   </>
                 )}

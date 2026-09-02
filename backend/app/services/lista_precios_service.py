@@ -49,6 +49,7 @@ KEYS_INCOMPATIBLES_COMBINADO = {"articulo_id", "nombre", "unidad_medida", "medid
 UNIDADES_CONOCIDAS = {
     "kg": "kg",
     "g": "g",
+    "grs": "g",
     "l": "l",
     "ml": "ml",
     "lt": "l",
@@ -67,7 +68,7 @@ UNIDADES_CONOCIDAS = {
     "piezas": "pieza",
 }
 
-MEDIDA_NO_CORRESPONDE = ("no corresponde", "no corresponde")
+MEDIDA_POR_DEFECTO = ("unidad", "1")
 
 _PATRON_CANTIDAD_UNIDAD = re.compile(r"(?P<cantidad>\d+(?:[.,]\d+)?)\s*(?P<unidad>[a-zA-ZñÑ]+)")
 
@@ -89,15 +90,22 @@ def _normalizar_precio(valor: str) -> str:
     return texto
 
 
-def _parsear_articulo_medida(texto: str) -> tuple[str, str, str]:
+def _mapa_unidades(unidades_db: list[str]) -> dict[str, str]:
+    mapa = {u.lower(): u for u in unidades_db if u}
+    for alias, canonico in UNIDADES_CONOCIDAS.items():
+        mapa.setdefault(alias, canonico)
+    return mapa
+
+
+def _parsear_articulo_medida(texto: str, unidades: dict[str, str]) -> tuple[str, str, str]:
     normalizado = " ".join(texto.split())
     match = None
     for candidato in _PATRON_CANTIDAD_UNIDAD.finditer(normalizado):
-        if candidato.group("unidad").lower() in UNIDADES_CONOCIDAS:
+        if candidato.group("unidad").lower() in unidades:
             match = candidato
     if match is None:
-        return normalizado, *MEDIDA_NO_CORRESPONDE
-    unidad = UNIDADES_CONOCIDAS[match.group("unidad").lower()]
+        return normalizado, *MEDIDA_POR_DEFECTO
+    unidad = unidades[match.group("unidad").lower()]
     cantidad = match.group("cantidad").replace(",", ".")
     nombre = " ".join((normalizado[: match.start()] + " " + normalizado[match.end() :]).split())
     return nombre or normalizado, unidad, cantidad
@@ -170,10 +178,11 @@ class ListaPreciosService:
         try:
             proveedor = self._resolve_proveedor(data.proveedor_id, data.proveedor)
             filas = self._leer_excel(archivo, data.mapeo)
+            unidades = _mapa_unidades(self.medida_repository.unidades())
             items: list[ItemListaPrecio] = []
             descartadas: list[dict] = []
             for numero_fila, fila in filas:
-                item, motivo = self._item_desde_fila(numero_fila, fila, data.mapeo)
+                item, motivo = self._item_desde_fila(numero_fila, fila, data.mapeo, unidades)
                 if item is None:
                     descartadas.append({"fila": numero_fila, "motivo": motivo})
                 else:
@@ -317,7 +326,7 @@ class ListaPreciosService:
         return result
 
     def _item_desde_fila(
-        self, numero_fila: int, fila: dict, mapeo: list[MapeoColumna]
+        self, numero_fila: int, fila: dict, mapeo: list[MapeoColumna], unidades: dict[str, str]
     ) -> tuple[ItemListaPrecio | None, str | None]:
         col = {m.key: m.value for m in mapeo}
 
@@ -340,7 +349,7 @@ class ListaPreciosService:
         combinado = None
         texto_combinado = fila.get("articulo_medida_combinado")
         if texto_combinado is not None and str(texto_combinado).strip():
-            combinado = _parsear_articulo_medida(str(texto_combinado))
+            combinado = _parsear_articulo_medida(str(texto_combinado), unidades)
 
         articulo = None
         if "articulo_id" in fila:

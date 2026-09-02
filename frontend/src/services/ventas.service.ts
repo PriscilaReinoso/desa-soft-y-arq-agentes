@@ -1,4 +1,6 @@
 import type {
+  PeriodoVentas,
+  ResumenVentasOut,
   VentaCreatePayload,
   VentaOut,
   VentaUpdatePayload,
@@ -7,6 +9,10 @@ import { http } from './http'
 
 export function listVentas(): Promise<VentaOut[]> {
   return http<VentaOut[]>('/ventas?skip=0&limit=100')
+}
+
+export function getResumenVentas(periodo: PeriodoVentas): Promise<ResumenVentasOut> {
+  return http<ResumenVentasOut>(`/ventas/estadisticas?periodo=${periodo}`)
 }
 
 export function getVenta(identificador: string): Promise<VentaOut> {

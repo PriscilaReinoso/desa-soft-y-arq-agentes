@@ -18,7 +18,6 @@ Este proyecto implementa un MCP Server encargado de proporcionar al agente de IA
 - Python 3.12, Fast MCP
 - PostgreSQL con pgvector (búsqueda semántica del asistente).
 - Pytest para pruebas.
-- Docker para contenerización.
 
 ## Estructura del proyecto
 
@@ -55,7 +54,7 @@ La aplicación sigue una arquitectura por capas:
 
 Bot-Chat
     ↓
-Comunicacion STDIO (RPC)
+Comunicacion STDIO
     ↓
 MCP Server (Proceso hijo del bot chat)
     ↓

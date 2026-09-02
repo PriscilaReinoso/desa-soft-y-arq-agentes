@@ -12,8 +12,8 @@ from app.models.venta import VentaCabecera, VentaDetalle
 from app.repositories.inventario_repository import InventarioRepository
 from app.repositories.metodo_pago_repository import MetodoPagoRepository
 from app.repositories.presupuesto_repository import PresupuestoRepository
-from app.repositories.venta_repository import VentaRepository
-from app.schemas.venta import ItemVenta, VentaCreate, VentaUpdate
+from app.repositories.venta_repository import VentaRepository, rango_periodo
+from app.schemas.venta import ItemVenta, PeriodoVentas, ResumenVentasOut, VentaCreate, VentaUpdate
 
 
 def _validation_error(field: str, msg: str) -> RequestValidationError:
@@ -42,6 +42,13 @@ class VentaService:
         if venta is None:
             raise NotFoundError(detail="Venta no encontrada")
         return venta
+
+    def obtener_resumen(self, periodo: PeriodoVentas = PeriodoVentas.mes) -> ResumenVentasOut:
+        desde, hasta = rango_periodo(periodo)
+        total, cantidad = self.repository.resumen_por_periodo(desde, hasta)
+        return ResumenVentasOut(
+            periodo=periodo, desde=desde, hasta=hasta, total=total, cantidad_ventas=cantidad
+        )
 
     def create(self, data: VentaCreate) -> VentaCabecera:
         try:

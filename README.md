@@ -25,8 +25,11 @@ El desarrollo de este proyecto fue creado con herramientas de IA completamente g
 2. **Backend**: ver `backend/README.md`.
 3. **Frontend**: `cd frontend && npm install && npm run dev`.
 
-Cada proyecto tiene su propio `README.md` con instrucciones detalladas.
+Cada proyecto tiene su propio `README.md` con instrucciones detalladas. Sin embargo esta cada proyecto contenirizado para iniciar con el docker compose
 
 1. docker compose up -d a la altura del docker compose
 
 URL: http://127.0.0.1/login
+SWAGGER: http://localhost:8000/docs
+
+

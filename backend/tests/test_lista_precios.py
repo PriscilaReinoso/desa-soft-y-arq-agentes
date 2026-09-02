@@ -449,7 +449,7 @@ class TestListaPrecios:
         assert body[1]["medida"]["unidad_medida"] == "m"
         assert body[1]["medida"]["medida"] == "9"
 
-    def test_alta_excel_combinada_sin_medida_usa_no_corresponde(self, client, admin_headers):
+    def test_alta_excel_combinada_sin_medida_usa_unidad_por_defecto(self, client, admin_headers):
         self._crear_categoria(client, admin_headers, "HERRAMIENTAS")
         proveedor = self._crear_proveedor(client, admin_headers, telefono="9800")
         contenido = self._build_excel(
@@ -469,9 +469,54 @@ class TestListaPrecios:
             "Tornillo 5caja",
         ]
         for item in body:
-            assert item["medida"]["unidad_medida"] == "no corresponde"
-            assert item["medida"]["medida"] == "no corresponde"
+            assert item["medida"]["unidad_medida"] == "unidad"
+            assert item["medida"]["medida"] == "1"
         assert len({i["medida"]["id"] for i in body}) == 1
+
+    def test_alta_excel_combinada_unidad_de_db(self, client, admin_headers):
+        self._crear_categoria(client, admin_headers, "HERRAMIENTAS")
+        proveedor = self._crear_proveedor(client, admin_headers, telefono="9250")
+        medida = self._crear_medida(client, admin_headers, unidad="caja", medida="5")
+        contenido = self._build_excel(
+            [["HERRAMIENTAS", "Tornillo 5caja", 7]],
+            ["categoria", "articulo", "precio_lista"],
+        )
+        r = self._post_excel(client, admin_headers, proveedor["id"], contenido, self._mapeo_combinado())
+        assert r.status_code == 201, r.text
+        item = r.json()["registros"][0]
+        assert item["articulo"]["nombre"] == "Tornillo"
+        assert item["medida"]["unidad_medida"] == "caja"
+        assert item["medida"]["medida"] == "5"
+        assert item["medida"]["id"] == medida["id"]
+
+    def test_alta_excel_combinada_unidad_de_db_se_crea_si_no_existe(self, client, admin_headers):
+        self._crear_categoria(client, admin_headers, "HERRAMIENTAS")
+        proveedor = self._crear_proveedor(client, admin_headers, telefono="9251")
+        self._crear_medida(client, admin_headers, unidad="caja", medida="5")
+        contenido = self._build_excel(
+            [["HERRAMIENTAS", "Tornillo 3caja", 7]],
+            ["categoria", "articulo", "precio_lista"],
+        )
+        r = self._post_excel(client, admin_headers, proveedor["id"], contenido, self._mapeo_combinado())
+        assert r.status_code == 201, r.text
+        item = r.json()["registros"][0]
+        assert item["articulo"]["nombre"] == "Tornillo"
+        assert item["medida"]["unidad_medida"] == "caja"
+        assert item["medida"]["medida"] == "3"
+
+    def test_alta_excel_combinada_unidad_de_db_prevalece_sobre_respaldo(self, client, admin_headers):
+        self._crear_categoria(client, admin_headers, "HERRAMIENTAS")
+        proveedor = self._crear_proveedor(client, admin_headers, telefono="9252")
+        medida = self._crear_medida(client, admin_headers, unidad="un", medida="2")
+        contenido = self._build_excel(
+            [["HERRAMIENTAS", "Tornillo 2un", 7]],
+            ["categoria", "articulo", "precio_lista"],
+        )
+        r = self._post_excel(client, admin_headers, proveedor["id"], contenido, self._mapeo_combinado())
+        assert r.status_code == 201, r.text
+        item = r.json()["registros"][0]
+        assert item["medida"]["unidad_medida"] == "un"
+        assert item["medida"]["id"] == medida["id"]
 
     def test_alta_excel_celda_combinada_vacia_se_descarta(self, client, admin_headers):
         self._crear_categoria(client, admin_headers, "HERRAMIENTAS")
@@ -577,7 +622,8 @@ class TestListaPrecios:
         item = r.json()["registros"][0]
         assert item["articulo"]["nombre"] == "MASCARA FOTOSENSIBLE TOOLMAK"
         assert item["articulo"]["categoria_id"] is None
-        assert item["medida"]["unidad_medida"] == "no corresponde"
+        assert item["medida"]["unidad_medida"] == "unidad"
+        assert item["medida"]["medida"] == "1"
 
     def test_alta_excel_combinada_con_columna_categoria(self, client, admin_headers):
         cat = self._crear_categoria(client, admin_headers, "HERRAMIENTAS")

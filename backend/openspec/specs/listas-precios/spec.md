@@ -78,14 +78,20 @@ Además de las claves por columnas separadas, el mapeo admite la clave
 texto contiene el artículo y, opcionalmente, cantidad y unidad (p. ej.
 "arandelas 1/8 2kg", "DISCO DE CORTE 115MM KUPER"). El sistema normaliza los
 saltos de línea y espacios del texto y busca la última aparición del patrón
-`<cantidad><unidad>` en cualquier posición, usando una lista fija de unidades
-conocidas insensibles a mayúsculas (kg; g; l/ml/lt/lts; m/mt/mts; cm; mm;
-u/un/unidad/unidades; pz/pieza/piezas). La parte restante es el nombre del
-artículo, la unidad canónica se guarda en `unidad_medida` y la cantidad en
-`medida`. Si el texto no contiene ninguna cantidad+unidad reconocible, el
-artículo se crea con el texto completo como nombre y la medida por defecto
-"no corresponde" (`unidad_medida` y `medida` = "no corresponde"), que se
-reutiliza entre filas. La clave `articulo_medida_combinado` no puede
+`<cantidad><unidad>` en cualquier posición. Las unidades reconocidas son las
+`unidad_medida` activas (sin `deleted_at`) existentes en la tabla `medida`,
+tomadas de la base de datos al inicio de la petición, más una lista fija de
+respaldo insensible a mayúsculas (kg; g; l/ml/lt/lts; m/mt/mts; cm; mm;
+u/un/unidad/unidades; pz/pieza/piezas). Si una misma palabra está en ambas
+fuentes, el sistema usa la unidad de la base de datos. La parte restante es el
+nombre del artículo, la unidad canónica se guarda en `unidad_medida` y la
+cantidad en `medida`. Si la combinación `unidad_medida` + cantidad no existe,
+el sistema la crea (o reutiliza la existente). Si el texto no contiene ninguna
+cantidad+unidad reconocible (ni en la base de datos ni en la lista de
+respaldo), el artículo se crea con el texto completo como nombre y se asocia a
+la medida por defecto "1 unidad" (`unidad_medida` "unidad" y `medida` "1"),
+que se reutiliza entre filas y se crea si aún no existe. La clave
+`articulo_medida_combinado` no puede
 combinarse en el mismo mapeo con `articulo_id`, `nombre`, `unidad_medida`,
 `medida` ni `medida_id`. La columna de categoría es opcional: si no se mapea o
 la celda está vacía, el artículo se crea sin categoría (`categoria_id` null);
@@ -118,17 +124,25 @@ normalizan antes de validar que sea numérico y `>= 0`.
 - **WHEN** una línea tiene "SIERRA COPA\n 11 PIEZAS IMP" u otra con cantidad decimal como "cable 1,5m"
 - **THEN** el sistema normaliza los espacios, la unidad a su forma canónica ("pieza") y la coma decimal a punto ("1.5")
 
+#### Scenario: Unidad existente en la base de datos se reconoce en el texto combinado
+- **WHEN** existe una medida activa con `unidad_medida` que no está en la lista de respaldo (p. ej. "caja") y una línea combinada trae "Tornillo 5caja"
+- **THEN** el sistema divide articulo "Tornillo", unidad "caja" y cantidad "5", reutiliza la medida existente si coincide la cantidad o la crea si no, y responde HTTP 201
+
+#### Scenario: La unidad de la base de datos prevalece sobre el respaldo
+- **WHEN** una palabra está tanto en la tabla `medida` como en la lista de respaldo
+- **THEN** el sistema usa como unidad canónica el valor de la base de datos
+
 #### Scenario: Reutilización de artículo existente desde columna combinada
 - **WHEN** el nombre parseado de la columna combinada corresponde a un artículo existente
 - **THEN** el sistema reutiliza el artículo existente para el registro de lista de precios
 
-#### Scenario: Texto sin cantidad o unidad reconocible usa medida no corresponde
-- **WHEN** el texto de la columna combinada no contiene cantidad+unidad reconocible (p. ej. "MASCARA FOTOSENSIBLE TOOLMAK", "Tornillo 5caja")
-- **THEN** el sistema crea el artículo con el texto completo como nombre usando la medida "no corresponde"
+#### Scenario: Texto sin cantidad o unidad reconocible usa la medida 1 unidad
+- **WHEN** el texto de la columna combinada no contiene cantidad+unidad reconocible ni en la base de datos ni en el respaldo (p. ej. "MASCARA FOTOSENSIBLE TOOLMAK", o "Tornillo 5caja" cuando "caja" no existe)
+- **THEN** el sistema crea el artículo con el texto completo como nombre y lo asocia a la medida "1 unidad" (`unidad_medida` "unidad", `medida` "1")
 
-#### Scenario: Reutilización de la medida no corresponde entre filas
+#### Scenario: Reutilización de la medida 1 unidad entre filas
 - **WHEN** varias líneas sin medida parseable se cargan en la misma petición
-- **THEN** todas comparten la misma fila de medida "no corresponde"
+- **THEN** todas comparten la misma fila de medida "1 unidad"
 
 #### Scenario: Alta sin categoría crea el artículo con categoría nula
 - **WHEN** el mapeo no incluye la columna de categoría, o la celda de categoría está vacía en alguna línea

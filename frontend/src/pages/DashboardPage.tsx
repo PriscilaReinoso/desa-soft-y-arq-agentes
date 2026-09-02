@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/http'
 import { useInventarioResumen, useInventarios, useInventariosBajoMinimo } from '../hooks/useInventarios'
+import { useResumenVentas, useVentas } from '../hooks/useVentas'
+import { formatCurrency } from '../lib/format'
 import { mockUsuario } from '../data/mock'
-import type { Kpi } from '../types/domain'
+import type { Kpi, ResumenVentasOut, VentaOut } from '../types/domain'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -21,6 +23,9 @@ export default function DashboardPage() {
   const resumenQuery = useInventarioResumen()
   const inventariosQuery = useInventarios()
   const bajoMinimoQuery = useInventariosBajoMinimo()
+  const resumenMesQuery = useResumenVentas('mes')
+  const resumenDiaQuery = useResumenVentas('dia')
+  const ventasQuery = useVentas()
 
   const today = useMemo(
     () =>
@@ -53,6 +58,24 @@ export default function DashboardPage() {
       : inventariosQuery.error.message
   })()
 
+  const formatResumenValue = (resumen: ResumenVentasOut | undefined): string => {
+    if (!resumen) return '—'
+    const n = Number(resumen.total)
+    return Number.isNaN(n) ? 'Sin información' : formatCurrency(n)
+  }
+
+  const resumenMesDelta = resumenMesQuery.isError
+    ? 'Sin información'
+    : resumenMesQuery.isPending
+      ? 'Cargando…'
+      : `${resumenMesQuery.data?.cantidad_ventas ?? 0} ventas`
+
+  const resumenDiaDelta = resumenDiaQuery.isError
+    ? 'Sin información'
+    : resumenDiaQuery.isPending
+      ? 'Cargando…'
+      : `${resumenDiaQuery.data?.cantidad_ventas ?? 0} ventas`
+
   const kpis: Kpi[] = [
     {
       label: 'Artículos en stock',
@@ -61,16 +84,42 @@ export default function DashboardPage() {
       color: '#4A6B8A',
       icon: '📦',
     },
-    { label: 'Ventas del mes', value: '—', delta: 'Sin información', color: '#C8763A', icon: '💰' },
-    { label: 'Órdenes pendientes', value: '—', delta: 'Sin información', color: '#A05C7B', icon: '🕐' },
     {
-      label: 'Stock bajo mínimo',
+      label: 'Ventas del mes',
+      value: resumenMesQuery.isError ? 'Sin información' : formatResumenValue(resumenMesQuery.data),
+      delta: resumenMesDelta,
+      color: '#C8763A',
+      icon: '💰',
+    },
+    {
+      label: 'Ventas del día',
+      value: resumenDiaQuery.isError ? 'Sin información' : formatResumenValue(resumenDiaQuery.data),
+      delta: resumenDiaDelta,
+      color: '#A05C7B',
+      icon: '🕐',
+    },
+    {
+      label: 'Artículos stock bajo',
       value: bajoMinimoUnavailable ? '—' : bajoMinimo.length.toLocaleString('es-AR'),
       delta: bajoMinimoUnavailable ? 'Sin información' : 'Requiere reposición',
       color: '#7B9A4A',
       icon: '⚠️',
     },
   ]
+
+  const ventasRecientes = useMemo(() => {
+    const rows = ventasQuery.data ?? []
+    return [...rows]
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      .slice(0, 5)
+  }, [ventasQuery.data])
+
+  const resumenArticulo = (venta: VentaOut): string => {
+    const nombres = venta.detalles.map((d) => d.articulo.nombre)
+    const primero = nombres[0]
+    if (!primero) return 'Sin artículos'
+    return nombres.length > 1 ? `${primero} +${nombres.length - 1}` : primero
+  }
 
   if (resumenQuery.isPending || inventariosQuery.isPending) {
     return (
@@ -115,9 +164,31 @@ export default function DashboardPage() {
               Ver todas →
             </Button>
           </div>
-          <div className="p-5">
-            <EmptyState message="Sin información disponible" />
-          </div>
+          {ventasQuery.isPending ? (
+            <div className="p-5">
+              <EmptyState message="Cargando ventas…" />
+            </div>
+          ) : ventasQuery.isError || ventasRecientes.length === 0 ? (
+            <div className="p-5">
+              <EmptyState message="Sin información disponible" />
+            </div>
+          ) : (
+            <ul>
+              {ventasRecientes.map((venta, i) => (
+                <li key={venta.id} className={`px-5 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
+                  <div className="flex justify-between items-baseline gap-2">
+                    <span className="font-semibold text-[13px]">{resumenArticulo(venta)}</span>
+                    <span className="text-[13px] font-mono font-bold">
+                      {formatCurrency(Number(venta.total))}
+                    </span>
+                  </div>
+                  <div className="text-[11.5px] text-muted-foreground mt-0.5">
+                    {new Date(venta.fecha).toLocaleDateString('es-AR')} · {venta.cantidad} ítems
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         {/* Low stock alert */}

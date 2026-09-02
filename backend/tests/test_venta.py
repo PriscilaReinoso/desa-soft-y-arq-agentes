@@ -401,3 +401,93 @@ class TestVenta:
         r = client.delete(f"/api/v1/ventas/{creado['id']}", headers=admin_headers)
         assert r.status_code == 400
         assert client.get(f"/api/v1/ventas/{creado['id']}", headers=admin_headers).status_code == 200
+
+    def test_resumen_mensual_ventas_aprobadas(self, client, admin_headers):
+        inventario = self._crear_inventario(client, admin_headers, stock=20, precio=10.5)
+        aprobada = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 2}], "aprobado": True},
+            headers=admin_headers,
+        )
+        assert aprobada.status_code == 201, aprobada.text
+        no_aprobada = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}]},
+            headers=admin_headers,
+        )
+        assert no_aprobada.status_code == 201, no_aprobada.text
+        r = client.get("/api/v1/ventas/estadisticas?periodo=mes", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["periodo"] == "mes"
+        assert float(body["total"]) == 21.0
+        assert body["cantidad_ventas"] == 1
+        assert body["desde"] and body["hasta"]
+
+    def test_resumen_por_periodos_dia_semana_anio(self, client, admin_headers):
+        inventario = self._crear_inventario(client, admin_headers, stock=10, precio=10.5)
+        r = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}], "aprobado": True},
+            headers=admin_headers,
+        )
+        assert r.status_code == 201, r.text
+        for periodo in ("dia", "semana", "año"):
+            resp = client.get(f"/api/v1/ventas/estadisticas?periodo={periodo}", headers=admin_headers)
+            assert resp.status_code == 200, resp.text
+            assert float(resp.json()["total"]) == 10.5
+            assert resp.json()["cantidad_ventas"] == 1
+
+    def test_resumen_periodo_sin_ventas(self, client, admin_headers):
+        r = client.get("/api/v1/ventas/estadisticas?periodo=mes", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert float(body["total"]) == 0.0
+        assert body["cantidad_ventas"] == 0
+
+    def test_resumen_excluye_no_aprobadas_y_eliminadas(self, client, admin_headers):
+        inventario = self._crear_inventario(client, admin_headers, stock=20, precio=10.5)
+        aprobada = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}], "aprobado": True},
+            headers=admin_headers,
+        )
+        assert aprobada.status_code == 201, aprobada.text
+        no_aprobada = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}]},
+            headers=admin_headers,
+        )
+        assert no_aprobada.status_code == 201, no_aprobada.text
+        a_eliminar = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}], "aprobado": True},
+            headers=admin_headers,
+        )
+        assert a_eliminar.status_code == 201, a_eliminar.text
+        r = client.delete(f"/api/v1/ventas/{a_eliminar.json()['id']}", headers=admin_headers)
+        assert r.status_code == 204
+        r = client.get("/api/v1/ventas/estadisticas?periodo=mes", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert float(body["total"]) == 10.5
+        assert body["cantidad_ventas"] == 1
+
+    def test_resumen_periodo_invalido(self, client, admin_headers):
+        r = client.get("/api/v1/ventas/estadisticas?periodo=bimestre", headers=admin_headers)
+        assert r.status_code == 422
+
+    def test_resumen_periodo_por_defecto(self, client, admin_headers):
+        inventario = self._crear_inventario(client, admin_headers, stock=10, precio=10.5)
+        r = client.post(
+            "/api/v1/ventas",
+            json={"items": [{"inventario_id": inventario["id"], "cantidad": 1}], "aprobado": True},
+            headers=admin_headers,
+        )
+        assert r.status_code == 201, r.text
+        r = client.get("/api/v1/ventas/estadisticas", headers=admin_headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["periodo"] == "mes"
+        assert float(body["total"]) == 10.5
+        assert body["cantidad_ventas"] == 1

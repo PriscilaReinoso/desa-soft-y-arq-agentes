@@ -25,6 +25,14 @@ class MedidaRepository:
         stmt = select(Medida).where(Medida.id == medida_id, Medida.deleted_at.is_(None))
         return self.db.scalar(stmt)
 
+    def unidades(self) -> list[str]:
+        stmt = (
+            select(Medida.unidad_medida)
+            .where(Medida.deleted_at.is_(None))
+            .distinct()
+        )
+        return [u for u in self.db.scalars(stmt).all() if u]
+
     def get_by_combinacion(self, unidad_medida: str, medida: str) -> Medida | None:
         stmt = select(Medida).where(
             Medida.unidad_medida == unidad_medida, Medida.medida == medida

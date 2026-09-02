@@ -1,11 +1,19 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.articulo import ArticuloOut
 from app.schemas.medida import MedidaOut
+
+
+class PeriodoVentas(str, Enum):
+    dia = "dia"
+    semana = "semana"
+    mes = "mes"
+    anio = "año"
 
 
 class ItemVenta(BaseModel):
@@ -52,3 +60,11 @@ class VentaCabeceraOut(BaseModel):
     aprobado: bool
     presupuesto_id: uuid.UUID | None
     detalles: list[VentaDetalleOut]
+
+
+class ResumenVentasOut(BaseModel):
+    periodo: PeriodoVentas
+    desde: datetime
+    hasta: datetime
+    total: Decimal
+    cantidad_ventas: int

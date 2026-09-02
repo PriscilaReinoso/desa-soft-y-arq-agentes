@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_usuario, require_roles
 from app.exceptions.base import NotFoundError
 from app.models.usuario import Usuario
-from app.schemas.venta import VentaCabeceraOut, VentaCreate, VentaUpdate
+from app.schemas.venta import PeriodoVentas, ResumenVentasOut, VentaCabeceraOut, VentaCreate, VentaUpdate
 from app.services.venta_service import VentaService
 
 router = APIRouter(
@@ -39,6 +39,14 @@ def create_venta(
     _: Usuario = Depends(require_roles("ADMIN")),
 ):
     return VentaService(db).create(data)
+
+
+@router.get("/estadisticas", response_model=ResumenVentasOut)
+def resumen_ventas(
+    periodo: PeriodoVentas = PeriodoVentas.mes,
+    db: Session = Depends(get_db),
+):
+    return VentaService(db).obtener_resumen(periodo)
 
 
 @router.get("/{identificador}", response_model=VentaCabeceraOut)

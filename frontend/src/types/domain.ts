@@ -260,6 +260,16 @@ export type VentaOut = {
   detalles: VentaDetalleOut[]
 }
 
+export type PeriodoVentas = 'dia' | 'semana' | 'mes' | 'anio'
+
+export type ResumenVentasOut = {
+  periodo: PeriodoVentas
+  desde: string
+  hasta: string
+  total: string
+  cantidad_ventas: number
+}
+
 export type Presupuesto = {
   id: string
   client: string

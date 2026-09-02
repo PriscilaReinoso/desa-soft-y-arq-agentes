@@ -74,6 +74,12 @@ FROM (VALUES ('unidad'),('kg'),('g'),('ml'),('lts'),('mt'),('mm'),('cm'),('p'),(
      (VALUES ('1'),('1/2'),('1/4'),('1/8'),('1/3'),('3/4')) AS v(valor)
 ON CONFLICT (unidad_medida, medida) DO NOTHING;
 
+-- Medidas GRS (gramos): alias frecuente de "g" en listas de precios y comprobantes.
+INSERT INTO medida (id, unidad_medida, medida, created_at, updated_at)
+SELECT gen_random_uuid(), 'grs', v.valor, now(), now()
+FROM (VALUES ('1'),('1/2'),('1/4'),('1/8'),('1/3'),('3/4')) AS v(valor)
+ON CONFLICT (unidad_medida, medida) DO NOTHING;
+
 -- Medidas específicas de artículos fuera del set básico (presentaciones puntuales)
 INSERT INTO medida (id, unidad_medida, medida, created_at, updated_at) VALUES
     (gen_random_uuid(), 'lts', '5',  now(), now()),
