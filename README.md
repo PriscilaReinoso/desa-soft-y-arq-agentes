@@ -32,4 +32,6 @@ Cada proyecto tiene su propio `README.md` con instrucciones detalladas. Sin emba
 URL: http://127.0.0.1/login
 SWAGGER: http://localhost:8000/docs
 
+## Arquitectura
 
+![alt text](arquitectura.png)
